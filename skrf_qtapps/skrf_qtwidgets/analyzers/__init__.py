@@ -8,11 +8,11 @@ from collections import OrderedDict
 analyzers = OrderedDict()
 
 try:
-    from skrf.vi.vna import keysight_pna
+    from . import analyzer_keysight_n9918a
 
     this_path = os.path.normpath(os.path.dirname(__file__))
     analyzer_modules = glob.glob(this_path + "/analyzer_*.py")
-    analyzers[keysight_pna.PNA.NAME] = keysight_pna.PNA
+    analyzers[analyzer_keysight_n9918a.Analyzer.NAME] = 'PNA'
 
     sys.path.insert(0, this_path)
     for analyzer in analyzer_modules:
@@ -33,3 +33,4 @@ try:
     sys.path.pop(0)
 except ImportError:
     pass
+

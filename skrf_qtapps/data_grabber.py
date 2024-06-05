@@ -1,7 +1,6 @@
 from qtpy import QtCore, QtWidgets
 
-from skrf_qtapps.skrf_qtwidgets import NetworkListWidget, NetworkPlotWidget, qt, widgets
-
+from skrf_qtwidgets import NetworkListWidget, NetworkPlotWidget, qt, widgets
 
 class DataGrabber(QtWidgets.QWidget):
     def __init__(self, parent=None):
