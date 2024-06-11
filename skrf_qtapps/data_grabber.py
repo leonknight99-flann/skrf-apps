@@ -39,7 +39,7 @@ class DataGrabber(QtWidgets.QWidget):
         # --- END SETUP UI --- #
 
         self.listWidget_measurements.ntwk_plot = self.ntwk_plot
-        self.listWidget_measurements.get_analyzer = self.vna_controller.get_analyzer
+        #self.listWidget_measurements.get_analyzer = self.vna_controller.get_analyzer
 
 def main():
     qt.single_widget_application(DataGrabber, appid="DataGrabber")
