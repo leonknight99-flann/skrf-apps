@@ -22,19 +22,25 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)  # Primary Widget Layout
         self.verticalLayout_main.setContentsMargins(0, 0, 0, 0)
 
-        self.newNetworkLabel = QtWidgets.QLabel("Number of Ports:") # Row1
-        self.newNetworkSpinBox = QtWidgets.QSpinBox()
-        self.newNetworkSpinBox.setMinimum(1)
-        self.newNetworkSpinBox.setMaximum(4)
-        self.createNewNetworkButton = QtWidgets.QPushButton("Create")
+        self.analyserLabel = QtWidgets.QLabel("Analyser:") # Row1
+        self.analyserComboBox = QtWidgets.QComboBox()
+        self.analyserAddressLabel = QtWidgets.QLabel("Address:")
+        self.analyserAddress = QtWidgets.QLineEdit()
+        self.analyserAddress.setPlaceholderText("VISA String")
 
         self.openButton = QtWidgets.QPushButton("Open Network")
         self.openButton.released.connect(self.load_from_files)
 
         self.captureButton = QtWidgets.QPushButton("Capture Data")
 
+        self.importButton = QtWidgets.QPushButton("Import Captured Data")
+
         self.partidLabel = QtWidgets.QLabel("Part ID:") # Row2
         self.partid = QtWidgets.QLineEdit()
+
+        self.specInstrumentNumber = QtWidgets.QLineEdit()
+        self.specInstrumentNumber.setPlaceholderText("Spec. Instrument Number")
+        self.specInstrumentNumber.setReadOnly(True)
 
         self.serialNumber = QtWidgets.QLineEdit()
         self.serialNumber.setPlaceholderText("Serial Number")
@@ -61,9 +67,10 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         self.s_paramGroup.setExclusive(False)
 
         self.row1 = QtWidgets.QHBoxLayout() # Row1
-        self.row1.addWidget(self.newNetworkLabel)
-        self.row1.addWidget(self.newNetworkSpinBox)
-        self.row1.addWidget(self.createNewNetworkButton)
+        self.row1.addWidget(self.analyserLabel)
+        self.row1.addWidget(self.analyserComboBox)
+        self.row1.addWidget(self.analyserAddressLabel)
+        self.row1.addWidget(self.analyserAddress)
 
         self.row2 = QtWidgets.QHBoxLayout() # Row2
         self.row2.addWidget(self.partidLabel)
@@ -72,13 +79,15 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
         self.rowFinal.addWidget(self.operatorNumberLabel)
         self.rowFinal.addWidget(self.operatorNumber)
+        self.rowFinal.addWidget(self.openButton)
         self.rowFinal.addWidget(self.saveButton)
 
-        # self.verticalLayout_main.addLayout(self.row1)
-        self.verticalLayout_main.addWidget(self.openButton)
-        self.verticalLayout_main.addLayout(self.s_paramLayout)
+        self.verticalLayout_main.addLayout(self.row1)
         self.verticalLayout_main.addWidget(self.captureButton)
+        self.verticalLayout_main.addLayout(self.s_paramLayout)
+        self.verticalLayout_main.addWidget(self.importButton)
         self.verticalLayout_main.addLayout(self.row2)
+        self.verticalLayout_main.addWidget(self.specInstrumentNumber)
         self.verticalLayout_main.addWidget(self.serialNumber)
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
