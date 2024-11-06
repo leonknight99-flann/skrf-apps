@@ -134,10 +134,9 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             self._ntwk_plot = None
 
     def capture_data(self):
-        # if not self.ntwk_plot:
-        #     return
+        if not self.ntwk_plot:
+            return
         
-        print(os.listdir())
         ntwk = skrf.Network('test.s2p')
         self.ntwk_plot.set_networks(ntwk)
 
