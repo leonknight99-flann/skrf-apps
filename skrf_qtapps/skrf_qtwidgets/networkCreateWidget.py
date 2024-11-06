@@ -5,10 +5,26 @@ from collections import OrderedDict
 
 from qtpy import QtCore, QtWidgets
 
-from skrf_qtwidgets import widgets
+from . import widgets
+from .networkPlotWidget import NetworkPlotWidget
+
+class NetworkCreateItem(skrf.Network):
+    def __init__(self, part_id: str = None, name: str = None, spec: list = None,
+                 operator: int = None, anlysr: str = None, notes: str = None,
+                 ntwk: skrf.Network = None):
+        self.part_id = part_id
+        self.name = name
+        self.notes = notes
+        self.spec = spec
+        self.operator = operator
+        self.anlysr = anlysr
+        self.ntwk = ntwk
+
+    def update_network(self, info):
+        pass
 
 
-class CreateNetworkWidget(QtWidgets.QWidget):
+class NetworkCreateWidget(QtWidgets.QWidget):
     item_removed = QtCore.Signal()
     item_updated = QtCore.Signal(object)
     save_single_requested = QtCore.Signal(object, str)
@@ -30,10 +46,13 @@ class CreateNetworkWidget(QtWidgets.QWidget):
 
         self.openButton = QtWidgets.QPushButton("Open Network")
         self.openButton.released.connect(self.load_from_files)
+        self.openButton.setDisabled(True)  # Remove once the feature has been added
 
         self.captureButton = QtWidgets.QPushButton("Capture Data")
+        self.captureButton.clicked.connect(lambda: self.capture_data())
 
         self.importButton = QtWidgets.QPushButton("Import Captured Data")
+        self.importButton.setDisabled(True)
 
         self.partidLabel = QtWidgets.QLabel("Part ID:") # Row2
         self.partid = QtWidgets.QLineEdit()
@@ -51,8 +70,9 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         self.operatorNumberLabel = QtWidgets.QLabel("Operator:") # Row-1
         self.operatorNumber = QtWidgets.QSpinBox()
         self.operatorNumber.setMinimum(1)
-        self.operatorNumber.setMaximum(100)
+        self.operatorNumber.setMaximum(999)
         self.saveButton = QtWidgets.QPushButton("Save")
+        self.saveButton.clicked.connect(lambda: self.save_network_item())
 
         self.s_paramButtons = {}
 
@@ -62,6 +82,7 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         for i in range(4):
             for j in range(4):
                 button = QtWidgets.QRadioButton(f'S{i+1}{j+1}')
+                button.setDisabled(True)  # Remove once the feature has been added
                 self.s_paramLayout.addWidget(button, i, j)
                 self.s_paramGroup.addButton(button, id=(j+4*1))
         self.s_paramGroup.setExclusive(False)
@@ -99,5 +120,36 @@ class CreateNetworkWidget(QtWidgets.QWidget):
         
     def load_from_files(self, caption="load touchstone file"):
         self.load_networks(widgets.load_network_files(caption))
+
+    @property
+    def ntwk_plot(self):
+        return self._ntwk_plot  # type: NetworkPlotWidget
+
+    @ntwk_plot.setter
+    def ntwk_plot(self, ntwk_plot):
+        if isinstance(ntwk_plot, NetworkPlotWidget):
+            self._ntwk_plot = ntwk_plot
+            self.item_removed.connect(self._ntwk_plot.clear_plot)
+        else:
+            self._ntwk_plot = None
+
+    def capture_data(self):
+        # if not self.ntwk_plot:
+        #     return
+        
+        print(os.listdir())
+        ntwk = skrf.Network('test.s2p')
+        self.ntwk_plot.set_networks(ntwk)
+
+    def save_network_item(self, ntwk_list_item=None):
+        partid = self.partid.text()
+        sn = self.serialNumber.text()
+        text = self.notesTextBox
+        print(partid)
+        print(sn)
+        # ntwk = ntwk_list_item.ntwk
+
+        # if not isinstance(ntwk, skrf.Network):
+        #     raise TypeError("ntwk must be a skrf.Network object to save")
         
 

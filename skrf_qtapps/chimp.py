@@ -1,6 +1,6 @@
 from qtpy import QtCore, QtWidgets
 
-from skrf_qtwidgets import NetworkPlotWidget, qt, CreateNetworkWidget
+from skrf_qtwidgets import NetworkPlotWidget, qt, NetworkCreateWidget
 
 class Chimp(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -16,7 +16,7 @@ class Chimp(QtWidgets.QWidget):
         size_policy.setVerticalStretch(1)
         self.splitter.setSizePolicy(size_policy)
 
-        self.create_network_widget = CreateNetworkWidget(self)
+        self.create_network_widget = NetworkCreateWidget(self)
 
         self.ntwk_plot = NetworkPlotWidget(self)
         self.ntwk_plot.corrected_data_enabled = False
