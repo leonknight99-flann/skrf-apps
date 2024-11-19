@@ -196,7 +196,7 @@ def close_splash_screen(widget, splash, start_time):
     splash.finish(widget)
 
 
-def single_widget_application(widget_class, splash_screen=True, appid="skrf.qtapp", icon=cfg.skrf_icon):
+def single_widget_application(widget_class, splash_screen=False, appid="skrf.qtapp", icon=cfg.skrf_icon):
     if appid:
         set_process_id(appid)
 

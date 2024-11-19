@@ -1,12 +1,19 @@
 import os
 import re
 import skrf
+import pyodbc
 from collections import OrderedDict
 
 from qtpy import QtCore, QtWidgets
 
 from . import widgets
 from .networkPlotWidget import NetworkPlotWidget
+from .analyzers import analyzers
+
+testDataPath = '\\\\Filesrv\\Test\\RFData\\'
+mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
+mydb_cursor = mydb.cursor()
+
 
 class NetworkCreateItem(skrf.Network):
     def __init__(self, part_id: str = None, name: str = None, spec: list = None,
@@ -44,6 +51,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.analyserAddress = QtWidgets.QLineEdit()
         self.analyserAddress.setPlaceholderText("VISA String")
 
+        self.analyserComboBox.currentIndexChanged.connect(self.update_selected_analyzer)
+        for key in analyzers.keys():
+            self.analyserComboBox.addItem(key)
+
         self.openButton = QtWidgets.QPushButton("Open Network")
         self.openButton.released.connect(self.load_from_files)
         self.openButton.setDisabled(True)  # Remove once the feature has been added
@@ -56,6 +67,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         self.partidLabel = QtWidgets.QLabel("Part ID:") # Row2
         self.partid = QtWidgets.QLineEdit()
+        self.instrumentNumberInfoDict = {}
+        self.partid.textChanged.connect(self.get_instument_number)
 
         self.specInstrumentNumber = QtWidgets.QLineEdit()
         self.specInstrumentNumber.setPlaceholderText("Spec. Instrument Number")
@@ -82,7 +95,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         for i in range(4):
             for j in range(4):
                 button = QtWidgets.QRadioButton(f'S{i+1}{j+1}')
-                button.setDisabled(True)  # Remove once the feature has been added
+                if i + j > 1 and not (i==1 and j==1):
+                    button.setDisabled(True)  # Remove once the feature has been added
                 self.s_paramLayout.addWidget(button, i, j)
                 self.s_paramGroup.addButton(button, id=(j+4*1))
         self.s_paramGroup.setExclusive(False)
@@ -113,6 +127,19 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
         self.verticalLayout_main.addLayout(self.rowFinal)   
+
+    def update_selected_analyzer(self):
+        cls = analyzers[self.analyserComboBox.currentText()]
+        self.analyserAddress.setText(cls.DEFAULT_VISA_ADDRESS)
+
+    def get_analyzer(self):
+        nwa = None
+        try:
+            nwa = analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
+        except Exception:
+            print('Unable to get analyzer')
+        print(nwa)
+        return nwa
     
     def load_networks(self, ntwks):
         if not ntwks:
@@ -136,9 +163,24 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def capture_data(self):
         if not self.ntwk_plot:
             return
-        
+        # ntwk = self.get_analyzer().get_snp_network((1,2))
+        # if self.serialNumber.text():
+        #     ntwk.name = self.serialNumber.text()
         ntwk = skrf.Network('test.s2p')
+        
         self.ntwk_plot.set_networks(ntwk)
+
+    def get_instument_number(self):
+        self.instrumentNumberInfoDict.clear()
+        self.partid.setText(self.partid.text().upper())
+        partid = self.partid.text()
+        partid_sql_info = mydb_cursor.execute("select Instrument_Number, Part_ID, Series, Var_Suffix, var_id from vw_Instrument_VarDetails where (Part_ID = ?)",(partid)).fetchone()
+        
+        if partid_sql_info == None:
+            self.specInstrumentNumber.clear()
+            self.specInstrumentNumber.setPlaceholderText("Spec. Instrument Number")
+        else:
+            self.specInstrumentNumber.setText(f'{partid_sql_info.Instrument_Number} {partid_sql_info.Var_Suffix}')
 
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()

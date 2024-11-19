@@ -8,6 +8,7 @@ import skrf
 
 from . import numeric_inputs, qt, widgets
 from .networkPlotWidget import NetworkPlotWidget
+from sql_qtwidgets import SQLDataSearchWidget
 
 
 class NetworkListItem(QtWidgets.QListWidgetItem):
@@ -50,6 +51,8 @@ class NetworkListWidget(QtWidgets.QListWidget):
         self.item_removed.connect(self.state_changed.emit)
 
         self._ntwk_plot = None
+        self._sql_widg = None
+        self.plot_from_sql_search_button = None
         self.named_items = {}
 
         self.selected_items = set()
@@ -154,6 +157,17 @@ class NetworkListWidget(QtWidgets.QListWidget):
         else:
             self._ntwk_plot = None
             self.item_removed.disconnect()
+
+    @property
+    def sql_widg(self):
+        return self._sql_widg  # type: SQLDataSearchWidget
+
+    @sql_widg.setter
+    def sql_widg(self, sql_widg):
+        if isinstance(sql_widg, SQLDataSearchWidget):
+            self._sql_widg = sql_widg
+            self.plot_from_sql_search_button = sql_widg.plot_button
+            self.plot_from_sql_search_button.clicked.connect(self.plot_from_sql_search)
 
     def get_unique_name(self, name=None, exclude_item=-1):
         """
@@ -377,6 +391,25 @@ class NetworkListWidget(QtWidgets.QListWidget):
     def load_from_files_twoport(self, caption="load touchstone files"):
         self.load_networks(widgets.load_network_files(caption, filter="touchstone file (*.s2p)"))
 
+    def import_from_files(self, caption="load csv file"):
+        self.load_networks(widgets.import_magnitude_files(caption))
+
+    def plot_from_sql_search(self):
+        if not self.sql_widg:
+            return
+        selected_files = self.sql_widg.get_selected_files()
+        file_list = self.sql_widg.get_file_list()
+        for f in selected_files:
+            selected_fnames = list(filter(lambda s: os.path.basename(s) == f, file_list))
+            try:
+                selected_csv = list(filter(lambda s: s.lower().endswith('.csv'), selected_fnames))
+                if selected_csv:
+                    self.load_networks(widgets.import_magnitude_files(fnames=selected_csv))
+                else:
+                    self.load_networks(widgets.load_network_files(fnames=selected_fnames))
+            except:
+                continue
+
     def save_selected_items(self):
         items = self.selectedItems()
         if len(items) == 1:
@@ -439,6 +472,11 @@ class NetworkListWidget(QtWidgets.QListWidget):
         button = QtWidgets.QPushButton(label)
         button.released.connect(self.load_from_files_twoport)
         return button
+    
+    def get_import_button(self, label="Import"):
+        button = QtWidgets.QPushButton(label)
+        button.released.connect(self.import_from_files)
+        return button
 
     def get_measure_button(self, label="Measure"):
         button = QtWidgets.QPushButton(label)
@@ -474,6 +512,16 @@ class NetworkListWidget(QtWidgets.QListWidget):
             raise TypeError("unrecognized request type for input buttons")
         horizontal_layout.addWidget(load_button)
         horizontal_layout.addWidget(measurement_button)
+        return widget
+    
+    def get_import_buttons(self, labels=("Load", "Import")):
+        widget = QtWidgets.QWidget()
+        horizontal_layout = QtWidgets.QHBoxLayout(widget)
+        horizontal_layout.setContentsMargins(0, 2, 0, 2)
+        load_button = self.get_load_button(labels[0])
+        import_button = self.get_import_button(labels[1])
+        horizontal_layout.addWidget(load_button)
+        horizontal_layout.addWidget(import_button)
         return widget
 
     def get_save_buttons(self, labels=("Save Selected", "Save All")):

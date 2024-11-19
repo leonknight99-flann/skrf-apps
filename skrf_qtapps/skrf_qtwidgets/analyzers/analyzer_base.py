@@ -46,3 +46,5 @@ class Analyzer(VNA):
     An ipython notebook can be found in the driver_development folder that provides a template for how to test the
     functionality of the driver.
     """
+    DEFAULT_VISA_ADDRESS = ""
+    NAME = ""

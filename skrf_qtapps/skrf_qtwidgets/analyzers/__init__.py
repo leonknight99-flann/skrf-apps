@@ -8,11 +8,11 @@ from collections import OrderedDict
 analyzers = OrderedDict()
 
 try:
-    from . import analyzer_keysight_n9918a
+    from . import analyzer_base
 
     this_path = os.path.normpath(os.path.dirname(__file__))
     analyzer_modules = glob.glob(this_path + "/analyzer_*.py")
-    analyzers[analyzer_keysight_n9918a.Analyzer.NAME] = 'PNA'
+    analyzers[analyzer_base.Analyzer.NAME] = ''
 
     sys.path.insert(0, this_path)
     for analyzer in analyzer_modules:

@@ -21,9 +21,6 @@ class Chimp(QtWidgets.QWidget):
         self.ntwk_plot = NetworkPlotWidget(self.splitter)
         self.ntwk_plot.corrected_data_enabled = False
 
-        # self.splitter.addWidget(self.create_network_widget)
-        # self.splitter.addWidget(self.ntwk_plot)
-
         self.verticalLayout_main.addWidget(self.splitter)
         self.splitter.setStretchFactor(1, 100)  # important that this goes at the end
 
@@ -33,7 +30,7 @@ class Chimp(QtWidgets.QWidget):
 
 
 def main():
-    qt.single_widget_application(Chimp, appid="ChimpSKRF")
+    qt.single_widget_application(Chimp, splash_screen=False, appid="ChimpSKRF")
 
 if __name__ == "__main__":
     main()

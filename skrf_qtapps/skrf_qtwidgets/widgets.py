@@ -5,13 +5,45 @@ import traceback
 from qtpy import QtCore, QtWidgets
 
 import skrf
+import numpy as np
 
 from . import numeric_inputs, qt
 from .analyzers import analyzers
 
 
-def load_network_file(caption="load network file", filter="touchstone file (*.s*p *.S*P)"):
-    fname = qt.getOpenFileName_Global(caption, filter)
+def import_magnitude_files(caption="import magnitude file", filter="CSV (*.csv)", fnames=[]):
+    if not fnames:
+        fnames = qt.getOpenFileNames_Global(caption, filter)
+    if not fnames:
+        return None
+    
+    ntwks = []
+    errors = []
+
+    for fname in fnames:
+        try:
+            mag_import = np.genfromtxt(fname, delimiter=',')
+            mag_import = mag_import[0:,:2]
+            freq = mag_import[:,0]
+            s_matrix = np.ones((len(freq),1,1), dtype=complex)
+            s_matrix[:,0,0] = 10 ** (mag_import[:,1] / 20)
+            ntwk = skrf.Network(frequency=(freq.flatten()*10**9), s=s_matrix, name=os.path.basename(fname))  # Assuming GHz
+
+            ntwks.append(ntwk)
+        except Exception:
+            etype, value, tb = sys.exc_info()
+            errors.append(fname + ": " + traceback.format_exception_only(etype, value))
+
+    if errors:
+        qt.error_popup(errors)
+
+
+    return ntwks
+
+
+def load_network_file(caption="load network file", filter="touchstone file (*.s*p *.S*P)", fname=[]):
+    if not fname:
+        fname = qt.getOpenFileName_Global(caption, filter)
     if not fname:
         return None
 
@@ -24,8 +56,9 @@ def load_network_file(caption="load network file", filter="touchstone file (*.s*
     return ntwk
 
 
-def load_network_files(caption="load network file", filter="touchstone file (*.s*p *.S*P)"):
-    fnames = qt.getOpenFileNames_Global(caption, filter)
+def load_network_files(caption="load network file", filter="touchstone file (*.s*p *.S*P)", fnames=[]):
+    if not fnames:
+        fnames = qt.getOpenFileNames_Global(caption, filter)
     if not fnames:
         return None
 

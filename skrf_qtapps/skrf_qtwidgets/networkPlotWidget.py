@@ -254,6 +254,8 @@ class NetworkPlotWidget(QtWidgets.QWidget):
                         continue
                 c = next(colors)
                 label = ntwk.name
+                if label == None:
+                    label = str('DUT')
                 param = f"S{m + 1:d}{n + 1:d}"
                 if ntwk.s.shape[1] > 1:
                     label += " - " + param

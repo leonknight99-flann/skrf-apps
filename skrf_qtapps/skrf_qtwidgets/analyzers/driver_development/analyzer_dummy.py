@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 import skrf
-from skrf_qtwidgets.analyzers import base_analyzer
+from skrf_qtwidgets.analyzers import analyzer_base
 from skrf_qtwidgets.cfg import example_data_dir
 
 
@@ -15,7 +15,7 @@ class DummyResource:
         pass
 
 
-class Analyzer(base_analyzer.Analyzer):
+class Analyzer(analyzer_base.Analyzer):
     DEFAULT_VISA_ADDRESS = "GPIB0::16::INSTR"
     NAME = "Analyzer"
     NPORTS = 2
