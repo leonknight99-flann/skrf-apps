@@ -12,16 +12,16 @@ from . import smith_chart, util
 
 class NetworkPlotWidget(QtWidgets.QWidget):
     S_VALS = OrderedDict((
-        ("decibels", "db"),
-        ("magnitude", "mag"),
-        ("phase (deg)", "deg"),
-        ("phase unwrapped (deg)", "deg_unwrap"),
-        ("phase (rad)", "rad"),
-        ("phase unwrapped (rad)", "rad_unwrap"),
-        ("real", "re"),
-        ("imaginary", "im"),
-        ("group delay", "group_delay"),
-        ("vswr", "vswr")
+        ("Decibels", "db"),
+        ("Magnitude", "mag"),
+        ("Phase (deg)", "deg"),
+        ("Phase Unwrapped (deg)", "deg_unwrap"),
+        ("Phase (rad)", "rad"),
+        ("Phase Unwrapped (rad)", "rad_unwrap"),
+        ("Real", "re"),
+        ("Imaginary", "im"),
+        ("Group Delay", "group_delay"),
+        ("VSWR", "vswr")
     ))
     S_UNITS = list(S_VALS.keys())
 
@@ -74,7 +74,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
 
         self.plot.addLegend()
         self.plot.showGrid(True, True)
-        self.plot.setLabel("bottom", "frequency", units="Hz")
+        self.plot.setLabel("bottom", "Frequency", units="Hz")
 
         self.last_plot = "rectangular"
 
@@ -163,7 +163,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
             self.plot.setAspectLocked(False)
             self.plot.autoRange()
             self.plot.enableAutoRange()
-            self.plot.setLabel("bottom", "frequency", units="Hz")
+            self.plot.setLabel("bottom", "Frequency", units="Hz")
 
         if smith and not self.last_plot == "smith":
             self.last_plot = "smith"
@@ -306,7 +306,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
 
         self.reset_plot()
         self.plot.showGrid(True, True)
-        self.plot.setLabel("bottom", "frequency", units="Hz")
+        self.plot.setLabel("bottom", "Frequency", units="Hz")
 
         colors = util.trace_color_cycle(ntwk.s.shape[1] ** 2)
 
@@ -330,7 +330,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
 
         self.reset_plot()
         self.plot.showGrid(True, True)
-        self.plot.setLabel("bottom", "frequency", units="Hz")
+        self.plot.setLabel("bottom", "Frequency", units="Hz")
 
         colors = util.trace_color_cycle()
 
