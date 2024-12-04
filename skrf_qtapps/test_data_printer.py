@@ -51,7 +51,7 @@ class TestDataPrinter(QtWidgets.QWidget):
         self.listWidget_measurements.sql_widg = self.sql_widg
 
 def main():
-    qt.single_widget_application(TestDataPrinter, appid="TestDataPrinter", icon='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.jpg')
+    qt.single_widget_application(TestDataPrinter, appid="TestDataPrinter", icon='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
 
 
 

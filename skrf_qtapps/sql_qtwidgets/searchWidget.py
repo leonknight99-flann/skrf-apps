@@ -87,7 +87,8 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
                 list_files = os.listdir(testDataPath+dir)
                 list_files = [name for name in list_files if name.lower().endswith(file_types)]
                 if self.lineEdit_filter.text() != '':
-                    list_files = list(filter(lambda f: self.lineEdit_filter.text().lower() in f.lower(), list_files))
+                    filter_list = self.lineEdit_filter.text().split(',')
+                    list_files = list(filter(lambda f: any(s in f.lower() for s in filter_list), list_files))
                 self.serialNumsFilesList += [testDataPath+dir+'\\'+s for s in list_files]
                 display_sn += list_files
             except:
