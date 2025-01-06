@@ -27,7 +27,8 @@ def import_magnitude_files(caption="import magnitude file", filter="CSV (*.csv)"
             freq = mag_import[:,0]
             s_matrix = np.ones((len(freq),1,1), dtype=complex)
             s_matrix[:,0,0] = 10 ** (mag_import[:,1] / 20)
-            ntwk = skrf.Network(frequency=(freq.flatten()*10**9), s=s_matrix, name=os.path.basename(fname))  # Assuming GHz
+            ntwk_name = os.path.basename(os.path.dirname(fname)) + ' ' + os.path.basename(fname)
+            ntwk = skrf.Network(frequency=(freq.flatten()*10**9), s=s_matrix, name=ntwk_name)  # Assuming GHz
 
             ntwks.append(ntwk)
         except Exception:
