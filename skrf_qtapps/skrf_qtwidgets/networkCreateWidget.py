@@ -15,12 +15,10 @@ mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUs
 mydb_cursor = mydb.cursor()
 
 
-class NetworkCreateItem(skrf.Network):
-    def __init__(self, part_id: str = None, name: str = None, spec: list = None,
-                 operator: int = None, anlysr: str = None, notes: str = None,
-                 ntwk: skrf.Network = None):
+class NetworkInstrument(skrf.Network):
+    def __init__(self, part_id: str = None, spec: list = None, operator: int = None, anlysr: str = None, notes: str = None, ntwk: skrf.Network = None):
+        super().__init__()
         self.part_id = part_id
-        self.name = name
         self.notes = notes
         self.spec = spec
         self.operator = operator
@@ -41,6 +39,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
+
+        self.ntwk = None
 
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)  # Primary Widget Layout
         self.verticalLayout_main.setContentsMargins(0, 0, 0, 0)
@@ -67,6 +67,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         self.partidLabel = QtWidgets.QLabel("Part ID:") # Row2
         self.partid = QtWidgets.QLineEdit()
+        self.partid.setPlaceholderText("Part ID or Test Data Folder Name")
         self.instrumentNumberInfoDict = {}
         self.partid.textChanged.connect(self.get_instument_number)
 
@@ -163,12 +164,12 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def capture_data(self):
         if not self.ntwk_plot:
             return
-        # ntwk = self.get_analyzer().get_snp_network((1,2))
-        # if self.serialNumber.text():
-        #     ntwk.name = self.serialNumber.text()
-        ntwk = skrf.Network('test.s2p')
+        self.ntwk = self.get_analyzer().get_snp_network((1,2))
+        if self.serialNumber.text():
+            self.ntwk.name = self.serialNumber.text()
+        # self.ntwk = skrf.Network('test.s2p')
         
-        self.ntwk_plot.set_networks(ntwk)
+        self.ntwk_plot.set_networks(self.ntwk)
 
     def get_instument_number(self):
         self.instrumentNumberInfoDict.clear()
@@ -185,10 +186,17 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()
         sn = self.serialNumber.text()
-        text = self.notesTextBox
-        print(partid)
-        print(sn)
+        text = self.notesTextBox.toPlainText()
+        operator = self.operatorNumber.value()
+        analyser = self.analyserComboBox.currentText()
+        date = QtCore.QDateTime.currentDateTime().toString("yyyyMMdd")
+        time = QtCore.QDateTime.currentDateTime().toString("hhmm")
         # ntwk = ntwk_list_item.ntwk
+        property_dict = {'part_id': partid, 'spec': [[0.1,0.9],[0.1,0.9]], 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
+        print(property_dict)
+        if isinstance(self.ntwk, skrf.Network):
+            self.ntwk.comments = str(property_dict)
+            self.ntwk.write_touchstone(f'{sn}_{date}_{time}', skrf_comment=False)
 
         # if not isinstance(ntwk, skrf.Network):
         #     raise TypeError("ntwk must be a skrf.Network object to save")
