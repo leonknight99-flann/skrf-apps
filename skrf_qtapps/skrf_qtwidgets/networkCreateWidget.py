@@ -11,8 +11,6 @@ from .networkPlotWidget import NetworkPlotWidget
 from .analyzers import analyzers
 
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
-mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
-mydb_cursor = mydb.cursor()
 
 
 class NetworkInstrument(skrf.Network):
@@ -99,7 +97,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
                 if i + j > 1 and not (i==1 and j==1):
                     button.setDisabled(True)  # Remove once the feature has been added
                 self.s_paramLayout.addWidget(button, i, j)
-                self.s_paramGroup.addButton(button, id=(j+4*1))
+                self.s_paramGroup.addButton(button, id=(j+4*i))  # Button ids are 0-15 for S11,S12,S13,...,S44
         self.s_paramGroup.setExclusive(False)
 
         self.row1 = QtWidgets.QHBoxLayout() # Row1
@@ -164,9 +162,16 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def capture_data(self):
         if not self.ntwk_plot:
             return
-        self.ntwk = self.get_analyzer().get_snp_network((1,2))
+        checked_buttons = [i for i, button in enumerate(self.s_paramGroup.buttons()) if button.isChecked()] # Checked buttons are 0-15, i%4 is the column, i//4 is the row
+        if len(checked_buttons) == 1 and checked_buttons[0] == 0:
+            self.ntwk = self.get_analyzer().get_snp_network((1,))
+        if len(checked_buttons) == 1 and checked_buttons[0] == 5:
+            self.ntwk = self.get_analyzer().get_snp_network((2,))
+        else:
+            self.ntwk = self.get_analyzer().get_snp_network((1,2))
         if self.serialNumber.text():
             self.ntwk.name = self.serialNumber.text()
+        
         # self.ntwk = skrf.Network('test.s2p')
         
         self.ntwk_plot.set_networks(self.ntwk)
@@ -175,7 +180,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.instrumentNumberInfoDict.clear()
         self.partid.setText(self.partid.text().upper())
         partid = self.partid.text()
+        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
+        mydb_cursor = mydb.cursor()
         partid_sql_info = mydb_cursor.execute("select Instrument_Number, Part_ID, Series, Var_Suffix, var_id from vw_Instrument_VarDetails where (Part_ID = ?)",(partid)).fetchone()
+        mydb.close()
         
         if partid_sql_info == None:
             self.specInstrumentNumber.clear()

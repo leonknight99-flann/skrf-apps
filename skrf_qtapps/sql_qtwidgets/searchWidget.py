@@ -5,8 +5,7 @@ from qtpy import QtWidgets
 
 file_types = ('.csv', '.s1p', '.s2p', '.s3p', '.s4p')
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
-mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
-mydb_cursor = mydb.cursor()
+
 
 
 class SQLDataSearchWidget(QtWidgets.QWidget):
@@ -61,7 +60,6 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
 
         self.partIDsList, self.serialNumsFilesList, self.selected_sns = [], [], []
         
-
     def list_partids(self):
         self.listWidget_PartIDs.clear()
         self.partIDsList.clear()
@@ -69,10 +67,13 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         
         InstNum = self.lineEdit_instNum.text()
         PartID = self.lineEdit_partID.text()
+        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
+        mydb_cursor = mydb.cursor()
         for row in mydb_cursor.execute("select Instrument_Number, Part_ID, Series, Var_Suffix from vw_Instrument_VarDetails where ((Instrument_Number like ?) and (Part_ID is not null)) and (Part_ID like ?)", ('%'+InstNum+'%', '%'+PartID+'%')):
             display_pIDs.append(f'{row.Instrument_Number} {row.Var_Suffix} {row.Part_ID}')
             self.partIDsList.append(row.Part_ID)
         self.listWidget_PartIDs.addItems(display_pIDs)
+        mydb.close()
     
     def list_data_files(self):
         self.listWidget_SerialNums.clear()
