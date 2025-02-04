@@ -1,8 +1,11 @@
 import os
 import re
 import skrf
+import numpy as np
 import pyodbc
 from collections import OrderedDict
+
+import matplotlib.pyplot as plt
 
 from qtpy import QtCore, QtWidgets
 
@@ -11,20 +14,6 @@ from .networkPlotWidget import NetworkPlotWidget
 from .analyzers import analyzers
 
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
-
-
-class NetworkInstrument(skrf.Network):
-    def __init__(self, part_id: str = None, spec: list = None, operator: int = None, anlysr: str = None, notes: str = None, ntwk: skrf.Network = None):
-        super().__init__()
-        self.part_id = part_id
-        self.notes = notes
-        self.spec = spec
-        self.operator = operator
-        self.anlysr = anlysr
-        self.ntwk = ntwk
-
-    def update_network(self, info):
-        pass
 
 
 class NetworkCreateWidget(QtWidgets.QWidget):
@@ -38,7 +27,9 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
 
+        self.Instrument_ID = None
         self.ntwk = None
+        self.spec_ntwk = None
 
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)  # Primary Widget Layout
         self.verticalLayout_main.setContentsMargins(0, 0, 0, 0)
@@ -131,14 +122,16 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         cls = analyzers[self.analyserComboBox.currentText()]
         self.analyserAddress.setText(cls.DEFAULT_VISA_ADDRESS)
 
-    def get_analyzer(self):
+    def get_analyzer_network(self, ports):
         nwa = None
         try:
             nwa = analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
         except Exception:
             print('Unable to get analyzer')
-        print(nwa)
-        return nwa
+        
+        ntwk = nwa.get_snp_network(ports)
+        print(ntwk)
+        return ntwk
     
     def load_networks(self, ntwks):
         if not ntwks:
@@ -162,19 +155,29 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def capture_data(self):
         if not self.ntwk_plot:
             return
+        ntwk_list = []
+        self.ntwk = None
         checked_buttons = [i for i, button in enumerate(self.s_paramGroup.buttons()) if button.isChecked()] # Checked buttons are 0-15, i%4 is the column, i//4 is the row
-        if len(checked_buttons) == 1 and checked_buttons[0] == 0:
-            self.ntwk = self.get_analyzer().get_snp_network((1,))
-        if len(checked_buttons) == 1 and checked_buttons[0] == 5:
-            self.ntwk = self.get_analyzer().get_snp_network((2,))
+        print(checked_buttons)
+        if checked_buttons == [0]:
+            self.ntwk = self.get_analyzer_network((1,))
+        elif checked_buttons == [5]:
+            self.ntwk = self.get_analyzer_network((2,))
         else:
-            self.ntwk = self.get_analyzer().get_snp_network((1,2))
+            self.ntwk = self.get_analyzer_network((1,2))
         if self.serialNumber.text():
             self.ntwk.name = self.serialNumber.text()
         
         # self.ntwk = skrf.Network('test.s2p')
+        ntwk_list.append(self.ntwk)
+
+        if self.spec_ntwk is not None:
+            ntwk_list.append(self.spec_ntwk)
+
+        if ntwk_list:
+            ntwk_with_spec = ntwk_list if len(ntwk_list) > 1 else ntwk_list[0]
         
-        self.ntwk_plot.set_networks(self.ntwk)
+        self.ntwk_plot.set_networks(ntwk_with_spec)
 
     def get_instument_number(self):
         self.instrumentNumberInfoDict.clear()
@@ -182,14 +185,48 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         partid = self.partid.text()
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
-        partid_sql_info = mydb_cursor.execute("select Instrument_Number, Part_ID, Series, Var_Suffix, var_id from vw_Instrument_VarDetails where (Part_ID = ?)",(partid)).fetchone()
+        partid_sql_info = mydb_cursor.execute("select Instrument_Number, Instrument_ID, Part_ID, Series, Var_Suffix, var_id from vw_Instrument_VarDetails where (Part_ID = ?)",(partid)).fetchone()
         mydb.close()
         
         if partid_sql_info == None:
             self.specInstrumentNumber.clear()
             self.specInstrumentNumber.setPlaceholderText("Spec. Instrument Number")
+            self.spec_ntwk = None
+            self.Instrument_ID = None
         else:
             self.specInstrumentNumber.setText(f'{partid_sql_info.Instrument_Number} {partid_sql_info.Var_Suffix}')
+            self.Instrument_ID = partid_sql_info.Instrument_ID
+            self.get_specification_network()
+
+    def get_specification_network(self):
+        allowed_spec = ['MWV-001', 'MWV-004', 'MWV-005', 'MWV-052', 'MWV-059']  # Currently supports Frequency Band, VSWR, IL, RL, and Passband Frequency
+        spec_list = []
+        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
+        mydb_cursor = mydb.cursor()
+        for row in mydb_cursor.execute("select Flann_Ref, Instrument_ID, NumNom, NumLwr, NumUpr from qry_InstrumentParameter_Search where (Flann_Ref like '%MWV%') and (Instrument_ID = ?)",(self.Instrument_ID)):
+            if row.Flann_Ref in allowed_spec:
+                spec_list.append([row.Flann_Ref,row.NumNom,row.NumLwr,row.NumUpr])
+        mydb.close()
+        try:
+            s11, s21 = 0, 0
+            for i in range(len(spec_list)):
+                if spec_list[i][0] == 'MWV-052' or spec_list[i][0] == 'MWV-001':
+                    freq = skrf.Frequency.from_f([spec_list[i][2], spec_list[i][3]], unit='Hz')
+                elif spec_list[i][0] == 'MWV-004':
+                    s11 = (abs(float(spec_list[i][1])) - 1) / (abs(float(spec_list[i][1])) + 1)
+                elif spec_list[i][0] == 'MWV-059':
+                    s11 = 10 ** (- abs(float(spec_list[i][1])) / 20)
+                elif spec_list[i][0] == 'MWV-005':
+                    s21 = 10 ** (- abs(float(spec_list[i][1])) / 20)
+            s_matrix = np.zeros((2, 2, 2), dtype=complex)
+            s_matrix[:, 0, 0] = s11
+            s_matrix[:, 1, 0] = s21
+            s_matrix[:, 0, 1] = s21
+            s_matrix[:, 1, 1] = s11
+            self.spec_ntwk = skrf.Network(frequency=freq, s=s_matrix, name='Spec')
+            self.ntwk_plot.set_networks(self.spec_ntwk)
+        except Exception:
+            return
 
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()
