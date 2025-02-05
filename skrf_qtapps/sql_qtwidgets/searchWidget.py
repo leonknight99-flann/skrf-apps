@@ -16,6 +16,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.verticalLayout = QtWidgets.QVBoxLayout(self) # primary widget layout
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
 
+        self.plotspec_button = QtWidgets.QPushButton("Plot Spec")
         self.label_instNum = QtWidgets.QLabel("Input Instrument Number", self)
         self.lineEdit_instNum = QtWidgets.QLineEdit(self)
         self.label_partID = QtWidgets.QLabel("Input Part ID", self)
@@ -24,6 +25,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.lineEdit_filter = QtWidgets.QLineEdit(self)
         self.plot_button = QtWidgets.QPushButton("Plot")
         self.hlayout_getScan = QtWidgets.QHBoxLayout()
+        self.hlayout_getScan.addWidget(self.plotspec_button)
         self.hlayout_getScan.addWidget(self.label_instNum)
         self.hlayout_getScan.addWidget(self.lineEdit_instNum)
         self.hlayout_getScan.addWidget(self.label_partID)
@@ -59,19 +61,25 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.listWidget_SerialNums.itemSelectionChanged.connect(self.get_file_list)
 
         self.partIDsList, self.serialNumsFilesList, self.selected_sns = [], [], []
+        self.instrumentIDdict = {}
         
     def list_partids(self):
         self.listWidget_PartIDs.clear()
         self.partIDsList.clear()
+        self.instrumentIDdict.clear()
         display_pIDs = []
         
         InstNum = self.lineEdit_instNum.text()
         PartID = self.lineEdit_partID.text()
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
-        for row in mydb_cursor.execute("select Instrument_Number, Part_ID, Series, Var_Suffix from vw_Instrument_VarDetails where ((Instrument_Number like ?) and (Part_ID is not null)) and (Part_ID like ?)", ('%'+InstNum+'%', '%'+PartID+'%')):
+        for row in mydb_cursor.execute("select Instrument_Number, Instrument_ID, Part_ID, Series, Var_Suffix from vw_Instrument_VarDetails where ((Instrument_Number like ?) and (Part_ID is not null)) and (Part_ID like ?)", ('%'+InstNum+'%', '%'+PartID+'%')):
             display_pIDs.append(f'{row.Instrument_Number} {row.Var_Suffix} {row.Part_ID}')
             self.partIDsList.append(row.Part_ID)
+            if row.Instrument_ID not in self.instrumentIDdict:
+                self.instrumentIDdict[row.Instrument_ID] = [row.Part_ID]
+            else:
+                self.instrumentIDdict[row.Instrument_ID].append(row.Part_ID)
         self.listWidget_PartIDs.addItems(display_pIDs)
         mydb.close()
     
@@ -103,3 +111,13 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
     def get_file_list(self):
         serialNumsFilesList = self.serialNumsFilesList
         return serialNumsFilesList
+    
+    def get_selected_instrumentIDs(self):
+        selected_pIDs = [p.row() for p in self.listWidget_PartIDs.selectedIndexes()]
+        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
+        selected_instrumentIDs = []
+        for p in selected_pIDs:
+            for k, v in self.instrumentIDdict.items():
+                if p in v:  # Note - If a specification fails to plot in the future it maybe due to part IDs not being in the upper or lower cases
+                    selected_instrumentIDs.append(k)
+        return selected_instrumentIDs

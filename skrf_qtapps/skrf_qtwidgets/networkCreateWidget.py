@@ -12,6 +12,7 @@ from qtpy import QtCore, QtWidgets
 from . import widgets
 from .networkPlotWidget import NetworkPlotWidget
 from .analyzers import analyzers
+from sql_qtwidgets import ismSpecTranslate
 
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
 
@@ -129,8 +130,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         except Exception:
             print('Unable to get analyzer')
         
-        ntwk = nwa.get_snp_network(ports)
-        print(ntwk)
+        ntwk = nwa.get_snp_network(ports)  # Get the network from the analyzer
         return ntwk
     
     def load_networks(self, ntwks):
@@ -179,7 +179,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         
         self.ntwk_plot.set_networks(ntwk_with_spec)
 
-    def get_instument_number(self):
+    def get_instument_number(self):  # Trys to get the Instrument Number from the user entered Part ID
         self.instrumentNumberInfoDict.clear()
         self.partid.setText(self.partid.text().upper())
         partid = self.partid.text()
@@ -196,37 +196,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         else:
             self.specInstrumentNumber.setText(f'{partid_sql_info.Instrument_Number} {partid_sql_info.Var_Suffix}')
             self.Instrument_ID = partid_sql_info.Instrument_ID
-            self.get_specification_network()
+            self.get_specification_network()  # Automatically plots the specification if avaliable
 
     def get_specification_network(self):
-        allowed_spec = ['MWV-001', 'MWV-004', 'MWV-005', 'MWV-052', 'MWV-059']  # Currently supports Frequency Band, VSWR, IL, RL, and Passband Frequency
-        spec_list = []
-        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
-        mydb_cursor = mydb.cursor()
-        for row in mydb_cursor.execute("select Flann_Ref, Instrument_ID, NumNom, NumLwr, NumUpr from qry_InstrumentParameter_Search where (Flann_Ref like '%MWV%') and (Instrument_ID = ?)",(self.Instrument_ID)):
-            if row.Flann_Ref in allowed_spec:
-                spec_list.append([row.Flann_Ref,row.NumNom,row.NumLwr,row.NumUpr])
-        mydb.close()
-        try:
-            s11, s21 = 0, 0
-            for i in range(len(spec_list)):
-                if spec_list[i][0] == 'MWV-052' or spec_list[i][0] == 'MWV-001':
-                    freq = skrf.Frequency.from_f([spec_list[i][2], spec_list[i][3]], unit='Hz')
-                elif spec_list[i][0] == 'MWV-004':
-                    s11 = (abs(float(spec_list[i][1])) - 1) / (abs(float(spec_list[i][1])) + 1)
-                elif spec_list[i][0] == 'MWV-059':
-                    s11 = 10 ** (- abs(float(spec_list[i][1])) / 20)
-                elif spec_list[i][0] == 'MWV-005':
-                    s21 = 10 ** (- abs(float(spec_list[i][1])) / 20)
-            s_matrix = np.zeros((2, 2, 2), dtype=complex)
-            s_matrix[:, 0, 0] = s11
-            s_matrix[:, 1, 0] = s21
-            s_matrix[:, 0, 1] = s21
-            s_matrix[:, 1, 1] = s11
-            self.spec_ntwk = skrf.Network(frequency=freq, s=s_matrix, name='Spec')
-            self.ntwk_plot.set_networks(self.spec_ntwk)
-        except Exception:
-            return
+        self.ntwk_plot.set_networks(ismSpecTranslate.get_specification_network([self.Instrument_ID]))
 
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()

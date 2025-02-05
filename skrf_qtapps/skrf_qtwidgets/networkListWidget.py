@@ -8,7 +8,7 @@ import skrf
 
 from . import numeric_inputs, qt, widgets
 from .networkPlotWidget import NetworkPlotWidget
-from sql_qtwidgets import SQLDataSearchWidget
+from sql_qtwidgets import SQLDataSearchWidget, ismSpecTranslate
 
 
 class NetworkListItem(QtWidgets.QListWidgetItem):
@@ -167,7 +167,9 @@ class NetworkListWidget(QtWidgets.QListWidget):
         if isinstance(sql_widg, SQLDataSearchWidget):
             self._sql_widg = sql_widg
             self.plot_from_sql_search_button = sql_widg.plot_button
-            self.plot_from_sql_search_button.clicked.connect(self.plot_from_sql_search)
+            self.plot_spec_from_sql_search_button = sql_widg.plotspec_button
+            self.plot_from_sql_search_button.clicked.connect(lambda: self.plot_from_sql_search())
+            self.plot_spec_from_sql_search_button.clicked.connect(lambda: self.plot_from_sql_search(test_data=False))
 
     def get_unique_name(self, name=None, exclude_item=-1):
         """
@@ -394,21 +396,24 @@ class NetworkListWidget(QtWidgets.QListWidget):
     def import_from_files(self, caption="load csv file"):
         self.load_networks(widgets.import_magnitude_files(caption))
 
-    def plot_from_sql_search(self):
+    def plot_from_sql_search(self, test_data=True):
         if not self.sql_widg:
             return
-        selected_files = self.sql_widg.get_selected_files()
-        file_list = self.sql_widg.get_file_list()
-        for f in selected_files:
-            selected_fnames = list(filter(lambda s: os.path.basename(s) == f, file_list))
-            try:
-                selected_csv = list(filter(lambda s: s.lower().endswith('.csv'), selected_fnames))
-                if selected_csv:
-                    self.load_networks(widgets.import_magnitude_files(fnames=selected_csv))
-                else:
-                    self.load_networks(widgets.load_network_files(fnames=selected_fnames))
-            except:
-                continue
+        if test_data:
+            selected_files = self.sql_widg.get_selected_files()
+            file_list = self.sql_widg.get_file_list()
+            for f in selected_files:
+                selected_fnames = list(filter(lambda s: os.path.basename(s) == f, file_list))
+                try:
+                    selected_csv = list(filter(lambda s: s.lower().endswith('.csv'), selected_fnames))
+                    if selected_csv:
+                        self.load_networks(widgets.import_magnitude_files(fnames=selected_csv))
+                    else:
+                        self.load_networks(widgets.load_network_files(fnames=selected_fnames))
+                except:
+                    continue
+        else:
+            self.load_networks(ismSpecTranslate.get_specification_network(self.sql_widg.get_selected_instrumentIDs()))
 
     def save_selected_items(self):
         items = self.selectedItems()
