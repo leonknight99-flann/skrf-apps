@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 from qtpy import QtCore, QtWidgets
 
-from . import widgets
+from . import widgets, qt
 from .networkPlotWidget import NetworkPlotWidget
 from .analyzers import analyzers
 from sql_qtwidgets import ismSpecTranslate
@@ -59,7 +59,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.partid = QtWidgets.QLineEdit()
         self.partid.setPlaceholderText("Part ID or Test Data Folder Name")
         self.instrumentNumberInfoDict = {}
-        self.partid.textChanged.connect(self.get_instument_number)
+        self.partid.textChanged.connect(lambda: self.get_instument_number())
 
         self.specInstrumentNumber = QtWidgets.QLineEdit()
         self.specInstrumentNumber.setPlaceholderText("Spec. Instrument Number")
@@ -129,6 +129,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             nwa = analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
         except Exception:
             print('Unable to get analyzer')
+            return
         
         ntwk = nwa.get_snp_network(ports)  # Get the network from the analyzer
         return ntwk
@@ -158,28 +159,33 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         ntwk_list = []
         self.ntwk = None
         checked_buttons = [i for i, button in enumerate(self.s_paramGroup.buttons()) if button.isChecked()] # Checked buttons are 0-15, i%4 is the column, i//4 is the row
-        print(checked_buttons)
-        if checked_buttons == [0]:
-            self.ntwk = self.get_analyzer_network((1,))
-        elif checked_buttons == [5]:
-            self.ntwk = self.get_analyzer_network((2,))
-        else:
-            self.ntwk = self.get_analyzer_network((1,2))
-        if self.serialNumber.text():
-            self.ntwk.name = self.serialNumber.text()
         
-        # self.ntwk = skrf.Network('test.s2p')
-        ntwk_list.append(self.ntwk)
+        try:
+            if checked_buttons == [0]:
+                self.ntwk = self.get_analyzer_network((1,))
+            elif checked_buttons == [5]:
+                self.ntwk = self.get_analyzer_network((2,))
+            else:
+                self.ntwk = self.get_analyzer_network((1,2))
+            if self.serialNumber.text():
+                self.ntwk.name = self.serialNumber.text()
+            
+            if isinstance(self.ntwk, skrf.Network):
+                ntwk_list.append(self.ntwk)
 
-        if self.spec_ntwk is not None:
-            ntwk_list.append(self.spec_ntwk)
+            if isinstance(self.spec_ntwk, skrf.Network):
+                ntwk_list.append(self.spec_ntwk)
 
-        if ntwk_list:
-            ntwk_with_spec = ntwk_list if len(ntwk_list) > 1 else ntwk_list[0]
-        
-        self.ntwk_plot.set_networks(ntwk_with_spec)
+            if ntwk_list:
+                ntwk_with_spec = ntwk_list if len(ntwk_list) > 1 else ntwk_list[0]
+            
+            self.ntwk_plot.set_networks(ntwk_with_spec)
+        except Exception:
+            qt.error_popup('Analyzer not found\n\nPlease check the VISA address and try again')
 
     def get_instument_number(self):  # Trys to get the Instrument Number from the user entered Part ID
+        if self.ntwk_plot:
+            self.ntwk_plot.clear_plot()
         self.instrumentNumberInfoDict.clear()
         self.partid.setText(self.partid.text().upper())
         partid = self.partid.text()
@@ -196,10 +202,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         else:
             self.specInstrumentNumber.setText(f'{partid_sql_info.Instrument_Number} {partid_sql_info.Var_Suffix}')
             self.Instrument_ID = partid_sql_info.Instrument_ID
-            self.get_specification_network()  # Automatically plots the specification if avaliable
-
-    def get_specification_network(self):
-        self.ntwk_plot.set_networks(ismSpecTranslate.get_specification_network([self.Instrument_ID]))
+            self.spec_ntwk = ismSpecTranslate.get_specification_network([self.Instrument_ID])
+            self.ntwk_plot.set_networks(self.spec_ntwk)
 
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()
@@ -209,14 +213,25 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         analyser = self.analyserComboBox.currentText()
         date = QtCore.QDateTime.currentDateTime().toString("yyyyMMdd")
         time = QtCore.QDateTime.currentDateTime().toString("hhmm")
-        # ntwk = ntwk_list_item.ntwk
-        property_dict = {'part_id': partid, 'spec': [[0.1,0.9],[0.1,0.9]], 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
-        print(property_dict)
+
+        spec_dict = {}
+
+        spec_dict_filter = ['MWV', 'MEC-001', 'MEC-002', 'MEC-004', 'MEC-005', 'MEC-035', 'MEC-040', 'MEC-016']
+
+        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
+        mydb_cursor = mydb.cursor()
+        for row in mydb_cursor.execute("select Flann_Ref, Instrument_ID, Units, Nominal, TolType, UprTol, LwrTol, ApprovedDate from qry_InstrumentParameter_Search where (Instrument_ID = ?)",(self.Instrument_ID)):
+            spec_dict[row.Flann_Ref] = ([row.Nominal,row.Units,row.TolType,row.UprTol,row.LwrTol,row.ApprovedDate])
+        mydb.close()
+
+        spec_dict = {k:v for k,v in spec_dict.items() if any(s in k for s in spec_dict_filter)}
+
+        property_dict = {'part_id': partid, 'spec': spec_dict, 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
         if isinstance(self.ntwk, skrf.Network):
             self.ntwk.comments = str(property_dict)
             self.ntwk.write_touchstone(f'{sn}_{date}_{time}', skrf_comment=False)
 
-        # if not isinstance(ntwk, skrf.Network):
-        #     raise TypeError("ntwk must be a skrf.Network object to save")
+        if not isinstance(self.ntwk, skrf.Network):
+            qt.error_popup('Save failed - no network to save')
         
 

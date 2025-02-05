@@ -231,6 +231,12 @@ class NetworkListWidget(QtWidgets.QListWidget):
             menu.addAction(remove)
             remove.triggered.connect(self.remove_item)
 
+        elif len(self.selectedItems()) == 0:
+            remove_all = QtWidgets.QAction("Remove All Items", self)
+            menu.addAction(remove_all)
+            remove_all.triggered.connect(self.clear)
+            self.item_removed.emit()
+
         menu.exec_(self.mapToGlobal(position))  # QtWidgets.QAction
 
     def remove_item(self):

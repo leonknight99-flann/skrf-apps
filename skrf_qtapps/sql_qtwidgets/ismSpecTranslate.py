@@ -33,4 +33,7 @@ def get_specification_network(Instrument_ID_list: list):
         except Exception:
             return None
         list_spec_ntwk.append(spec_ntwk)
+
+    if len(list_spec_ntwk) == 1:
+        return list_spec_ntwk[0]
     return list_spec_ntwk
