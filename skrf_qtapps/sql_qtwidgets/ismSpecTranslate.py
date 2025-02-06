@@ -9,9 +9,9 @@ def get_specification_network(Instrument_ID_list: list):
         spec_list = []
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
-        for row in mydb_cursor.execute("select Flann_Ref, Instrument_Number, Instrument_ID, NumNom, NumLwr, NumUpr from qry_InstrumentParameter_Search where (Flann_Ref like '%MWV%') and (Instrument_ID = ?)",(instrument_ID)):
+        for row in mydb_cursor.execute("select Flann_Ref, Instrument_Number, Instrument_ID, NumNom, NumLwr, NumUpr, SpecDetail_ID, SpecDetail_Link from qry_InstrumentParameter_Search where (Flann_Ref like '%MWV%') and (Instrument_ID = ?)",(instrument_ID)):
             if row.Flann_Ref in allowed_spec:
-                spec_list.append([row.Flann_Ref,row.NumNom,row.NumLwr,row.NumUpr,row.Instrument_Number])
+                spec_list.append([row.Flann_Ref,row.NumNom,row.NumLwr,row.NumUpr,row.Instrument_Number,row.SpecDetail_ID,row.SpecDetail_Link])
         mydb.close()
         try:  # To create a specification network from found ISM parameters - Currently for 2 or 1 port devices
             s11, s21 = 0, 0
