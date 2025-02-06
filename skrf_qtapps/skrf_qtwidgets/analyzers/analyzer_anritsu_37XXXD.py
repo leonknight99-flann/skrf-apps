@@ -36,15 +36,15 @@ class Analyzer(VNA):
         ''' MAIN METHOD for obtaining S parameters for one-port devices. '''
         if s_param == 'S11':
             ntwk = rf.Network()
-            freq = self.write("OFV;")  # Output Frequency Value
-            s11 = self.write("OS11C;")  # Output S11 Corrected
+            freq = self.query_values("OFV;")  # Output Frequency Value
+            s11 = self.query_values("OS11C;")  # Output S11 Corrected
             print(f'{freq} {s11}')
             self.write("RTL;")  # Return To Local
             return ntwk
         elif s_param == 'S22':
             ntwk = rf.Network()
-            freq = self.write("OFV;")  # Output Frequency Value
-            s22 = self.write("OS22C;")  # Output S22 Corrected
+            freq = self.query_values("OFV;")  # Output Frequency Value
+            s22 = self.query_values("OS22C;")  # Output S22 Corrected
             print(f'{freq} {s22}')
             self.write("RTL;")  # Return To Local
             return ntwk
@@ -57,8 +57,8 @@ class Analyzer(VNA):
     def two_port(self):
         ''' MAIN METHOD for obtaining S parameters for two-port devices. '''
         ntwk = rf.Network()
-        freq = self.write("OFV;")
-        s = self.write("O4SC;")  # Output 4 S-Parameters Corrected
+        freq = self.query_values("OFV;")
+        s = self.query_values("O4SC;")  # Output 4 S-Parameters Corrected
         print(f'{freq} {s}')
         self.write("RTL;")  # Return To Local
         return ntwk
