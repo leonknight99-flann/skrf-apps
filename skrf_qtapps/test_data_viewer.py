@@ -4,7 +4,7 @@ from skrf_qtwidgets import NetworkListWidget, NetworkPlotWidget, qt
 from sql_qtwidgets import SQLDataSearchWidget
 
 
-class TestDataPrinter(QtWidgets.QWidget):
+class TestDataViewer(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -51,7 +51,7 @@ class TestDataPrinter(QtWidgets.QWidget):
         self.listWidget_measurements.sql_widg = self.sql_widg
 
 def main():
-    qt.single_widget_application(TestDataPrinter, appid="TestDataPrinter", icon='C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')#='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
+    qt.single_widget_application(TestDataViewer, appid="TestDataPrinter", icon='C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')#='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
 
 
 
