@@ -7,7 +7,6 @@ file_types = ('.csv', '.s1p', '.s2p', '.s3p', '.s4p')
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
 
 
-
 class SQLDataSearchWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
@@ -60,8 +59,9 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.lineEdit_instNum.textChanged.connect(self.list_partids)
         self.lineEdit_partID.textChanged.connect(self.list_partids)
         self.lineEdit_filter.textChanged.connect(self.list_data_files)
-        self.listWidget_partIDs.itemSelectionChanged.connect(self.list_data_files)
         self.listWidget_partIDs.itemSelectionChanged.connect(self.list_serial_numbers)
+        self.listWidget_partIDs.itemSelectionChanged.connect(self.list_data_files)
+        self.listWidget_serialNums.itemSelectionChanged.connect(self.list_data_files)
         self.listWidget_dataFiles.itemSelectionChanged.connect(self.get_file_list)
 
         self.partIDsList, self.serialNoList, self.filesList, self.selected_files = [], [], [], []
@@ -94,14 +94,15 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
         selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
 
-        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=SVFLANN;UID=SVUpdater;PWD=MelonBall", readonly=True)
+        mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=SVFLANN;UID=SVUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
 
         for pID in selected_pIDs:
-            for row in mydb_cursor.execute(f"select Serial from [vwSerialHistLookup] where PartId like ?", '%'+pID+'%'):
-                display_sns.append(row.Serial)
+            for row in mydb_cursor.execute(f"select * from [Serial Master] where PRTNUM_71 like ?", '%'+pID+'%'):
+                display_sns.append(row.SERIAL_71)
 
         mydb.close()
+        display_sns = list(dict.fromkeys(display_sns))  # Remove duplicates
         self.listWidget_serialNums.addItems(display_sns)
     
     def list_data_files(self):
@@ -109,6 +110,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         display_sn = []
         self.filesList.clear()
 
+        selected_sn = [s.text() for s in self.listWidget_serialNums.selectedItems()]
         selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
         selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
 
@@ -116,9 +118,17 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
             try:
                 list_files = os.listdir(testDataPath+dir)
                 list_files = [name for name in list_files if name.lower().endswith(file_types)]
+                if len(selected_sn) > 0:
+                    list_files = [name for name in list_files if any(all([s in name.lower(), not name.removeprefix(s)[0].isdigit()]) for s in selected_sn)]  # Filter by serial number
                 if self.lineEdit_filter.text() != '':  # Filter by string
                     filter_list = self.lineEdit_filter.text().split(',')
-                    list_files = list(filter(lambda f: any(s in f.lower() for s in filter_list), list_files))
+                    disguard_list = [s for s in filter_list if s.startswith('!')]
+                    filter_list = list(set(filter_list) - set(disguard_list))
+                    disguard_list = [s[1:] for s in disguard_list]
+                    if len(filter_list) > 0:
+                        list_files = list(filter(lambda f: any(s in f.lower() for s in filter_list), list_files))
+                    if len(disguard_list) > 0:
+                        list_files = [f for f in list_files if not any(s in f.lower() for s in disguard_list)]
                 self.filesList += [testDataPath+dir+'\\'+s for s in list_files]
                 display_sn += list_files
             except:
