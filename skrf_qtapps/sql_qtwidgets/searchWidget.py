@@ -1,4 +1,5 @@
 import os
+import re
 import pyodbc
 
 from qtpy import QtWidgets
@@ -98,11 +99,17 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         mydb_cursor = mydb.cursor()
 
         for pID in selected_pIDs:
+            for row in mydb_cursor.execute(f"select * from [vwSerialHistLookup] where PartId like ?", '%'+pID+'%'):
+                display_sns.append(row.Serial)
             for row in mydb_cursor.execute(f"select * from [Serial Master] where PRTNUM_71 like ?", '%'+pID+'%'):
                 display_sns.append(row.SERIAL_71)
 
         mydb.close()
         display_sns = list(dict.fromkeys(display_sns))  # Remove duplicates
+        def natural_sort_key(s):
+        # Split the string into parts: digits and non-digits
+            return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s)]
+        display_sns.sort(key=natural_sort_key)
         self.listWidget_serialNums.addItems(display_sns)
     
     def list_data_files(self):
