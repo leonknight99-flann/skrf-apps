@@ -62,11 +62,17 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.lineEdit_filter.textChanged.connect(self.list_data_files)
         self.listWidget_partIDs.itemSelectionChanged.connect(self.list_serial_numbers)
         self.listWidget_partIDs.itemSelectionChanged.connect(self.list_data_files)
+        self.listWidget_partIDs.itemDoubleClicked.connect(self.open_partID_folder)
         self.listWidget_serialNums.itemSelectionChanged.connect(self.list_data_files)
         self.listWidget_dataFiles.itemSelectionChanged.connect(self.get_file_list)
 
         self.partIDsList, self.serialNoList, self.filesList, self.selected_files = [], [], [], []
         self.instrumentIDdict = {}
+
+    def open_partID_folder(self):
+        selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
+        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
+        os.startfile(testDataPath+selected_pIDs[0])
         
     def list_partids(self):
         self.listWidget_partIDs.clear()
