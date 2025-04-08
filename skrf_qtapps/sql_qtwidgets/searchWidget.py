@@ -119,6 +119,8 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.listWidget_serialNums.addItems(display_sns)
     
     def list_data_files(self):
+        if self.lineEdit_filter.text() != '':
+            self.lineEdit_filter.setText(self.lineEdit_filter.text().lower())
         self.listWidget_dataFiles.clear()
         display_sn = []
         self.filesList.clear()
