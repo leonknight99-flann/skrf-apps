@@ -6,6 +6,7 @@ from qtpy import QtCore, QtWidgets
 
 import skrf
 import numpy as np
+import pandas as pd
 
 from . import numeric_inputs, qt
 from .analyzers import analyzers
@@ -22,8 +23,8 @@ def import_magnitude_files(caption="import magnitude file", filter="CSV (*.csv)"
 
     for fname in fnames:
         try:
-            mag_import = np.genfromtxt(fname, delimiter=',')
-            mag_import = mag_import[0:,:2]
+            mag_import = pd.read_csv(fname, delimiter=',', usecols=(0,1))
+            mag_import = mag_import.to_numpy()
             freq = mag_import[:,0]
             s_matrix = np.ones((len(freq),1,1), dtype=complex)
             s_matrix[:,0,0] = 10 ** (mag_import[:,1] / 20)
