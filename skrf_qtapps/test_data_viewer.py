@@ -10,7 +10,7 @@ class TestDataViewer(QtWidgets.QWidget):
 
         # --- Setup UI --- #
         self.resize(825, 775)
-        self.setWindowTitle("Test Data Printer")
+        self.setWindowTitle("Test Data Viewer")
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)
 
         self.vsplitter = QtWidgets.QSplitter(QtCore.Qt.Vertical, self)
