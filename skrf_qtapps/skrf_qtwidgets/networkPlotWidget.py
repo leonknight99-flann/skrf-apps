@@ -3,7 +3,7 @@ from math import sqrt
 
 import numpy as np
 import pyqtgraph as pg
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 import skrf
 
@@ -42,6 +42,10 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         self.set_trace_items()
         self.comboBox_traceSelector.setCurrentIndex(0)
 
+        self.checkBox_backgroundBlack = QtWidgets.QCheckBox(self)
+        self.checkBox_backgroundBlack.setText("Black Background")
+        self.checkBox_backgroundBlack.setChecked(True)
+
         self.plot_layout = pg.GraphicsLayoutWidget(self)
         self.plot_layout.sceneObj.sigMouseClicked.connect(self.graph_clicked)
 
@@ -50,6 +54,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         self.horizontalLayout.addWidget(self.comboBox_primarySelector)
         self.horizontalLayout.addWidget(self.comboBox_unitsSelector)
         self.horizontalLayout.addWidget(self.comboBox_traceSelector)
+        self.horizontalLayout.addWidget(self.checkBox_backgroundBlack, alignment=QtCore.Qt.AlignRight)
 
         self.data_info_label = QtWidgets.QLabel("Click a data point to see info")
 
@@ -63,6 +68,7 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         self.comboBox_primarySelector.currentIndexChanged.connect(self.update_plot)
         self.comboBox_unitsSelector.currentIndexChanged.connect(self.update_plot)
         self.comboBox_traceSelector.currentIndexChanged.connect(self.update_plot)
+        self.checkBox_backgroundBlack.stateChanged.connect(self.update_plot)
 
         self.plot = self.plot_layout.addPlot()  # type: pg.PlotItem
 
@@ -291,6 +297,15 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         else:
             self.plot_ntwk()
             self.last_plot = "rectangular"
+        
+        if self.checkBox_backgroundBlack.isChecked():
+            self.plot_layout.setBackground('k')
+            self.plot.getAxis('left').setPen(pg.mkPen('d'))
+            self.plot.getAxis('bottom').setPen(pg.mkPen('d'))
+        else:
+            self.plot_layout.setBackground('w')
+            self.plot.getAxis('left').setPen(pg.mkPen('k'))
+            self.plot.getAxis('bottom').setPen(pg.mkPen('k'))
 
     def plot_ntwk(self):
         if self.use_corrected and self.ntwk_corrected is not None:
@@ -308,7 +323,11 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         self.plot.showGrid(True, True)
         self.plot.setLabel("bottom", "Frequency", units="Hz")
 
-        colors = util.trace_color_cycle(ntwk.s.shape[1] ** 2)
+        if not self.checkBox_backgroundBlack.isChecked():
+            colors = util.light_trace_color_cycle(ntwk.s.shape[1] ** 2)
+            
+        else:
+            colors = util.dark_trace_color_cycle(ntwk.s.shape[1] ** 2)
 
         m_, n_, trace = self._calc_traces()
 
@@ -332,7 +351,10 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         self.plot.showGrid(True, True)
         self.plot.setLabel("bottom", "Frequency", units="Hz")
 
-        colors = util.trace_color_cycle()
+        if not self.checkBox_backgroundBlack.isChecked():
+            colors = util.light_trace_color_cycle()
+        else:
+            colors = util.dark_trace_color_cycle()
 
         m_, n_, trace = self._calc_traces()
 
@@ -375,7 +397,10 @@ class NetworkPlotWidget(QtWidgets.QWidget):
 
         self.reset_plot(smith=True)
 
-        colors = util.trace_color_cycle(ntwk.s.shape[1] ** 2)
+        if not self.checkBox_backgroundBlack.isChecked():
+            colors = util.light_trace_color_cycle(ntwk.s.shape[1] ** 2)
+        else:
+            colors = util.dark_trace_color_cycle(ntwk.s.shape[1] ** 2)
 
         m_, n_, trace = self._calc_traces()
 
@@ -389,7 +414,11 @@ class NetworkPlotWidget(QtWidgets.QWidget):
         if ntwk_list is None:
             return
 
-        colors = util.trace_color_cycle()
+        if not self.checkBox_backgroundBlack.isChecked():
+            colors = util.light_trace_color_cycle()
+        else:
+            colors = util.dark_trace_color_cycle()
+
 
         m_, n_, trace = self._calc_traces()
 
