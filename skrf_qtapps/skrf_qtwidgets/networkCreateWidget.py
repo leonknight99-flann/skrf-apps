@@ -11,7 +11,7 @@ from qtpy import QtCore, QtWidgets
 
 from . import widgets, qt
 from .networkPlotWidget import NetworkPlotWidget
-from .analyzers import analyzers
+from .analyzers import loaded_analyzers
 from sql_qtwidgets import ismSpecTranslate
 
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
@@ -42,7 +42,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.analyserAddress.setPlaceholderText("VISA String")
 
         self.analyserComboBox.currentIndexChanged.connect(self.update_selected_analyzer)
-        for key in analyzers.keys():
+        for key in loaded_analyzers.keys():
             self.analyserComboBox.addItem(key)
 
         self.openButton = QtWidgets.QPushButton("Open Network")
@@ -120,13 +120,13 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.verticalLayout_main.addLayout(self.rowFinal)   
 
     def update_selected_analyzer(self):
-        cls = analyzers[self.analyserComboBox.currentText()]
+        cls = loaded_analyzers[self.analyserComboBox.currentText()]
         self.analyserAddress.setText(cls.DEFAULT_VISA_ADDRESS)
 
     def get_analyzer_network(self, ports):
         nwa = None
         try:
-            nwa = analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
+            nwa = loaded_analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
         except Exception:
             print('Unable to get analyzer')
             return

@@ -2,6 +2,8 @@ from qtpy import QtCore, QtWidgets
 
 from skrf_qtwidgets import NetworkPlotWidget, qt, NetworkCreateWidget
 
+from skrf_qtwidgets import analyzers
+
 class Chimp(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

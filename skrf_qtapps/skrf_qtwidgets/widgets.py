@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from . import numeric_inputs, qt
-from .analyzers import analyzers
+from .analyzers import loaded_analyzers
 
 
 def import_magnitude_files(caption="import magnitude file", filter="CSV (*.csv)", fnames=[]):
@@ -488,7 +488,7 @@ class VnaSelector(QtWidgets.QWidget):
         self.verticalLayout.addLayout(self.row2)
 
         self.comboBox_analyzer.currentIndexChanged.connect(self.update_selected_analyzer)
-        for key in analyzers.keys():
+        for key in loaded_analyzers.keys():
             self.comboBox_analyzer.addItem(key)
         # --- End Setup UI Elements --- #
 
@@ -500,13 +500,13 @@ class VnaSelector(QtWidgets.QWidget):
         self.enableStateToggled.emit(enabled)
 
     def update_selected_analyzer(self):
-        cls = analyzers[self.comboBox_analyzer.currentText()]
+        cls = loaded_analyzers[self.comboBox_analyzer.currentText()]
         self.lineEdit_visaString.setText(cls.DEFAULT_VISA_ADDRESS)
         self.spinBox_port2.setMaximum(cls.NPORTS)
         self.spinBox_channel.setMaximum(cls.NCHANNELS)
 
     def get_analyzer(self):
-        nwa = analyzers[self.comboBox_analyzer.currentText()](self.lineEdit_visaString.text())
+        nwa = loaded_analyzers[self.comboBox_analyzer.currentText()](self.lineEdit_visaString.text())
         nwa.set_measurement_parameters(
             port1=self.port1, port2=self.port2, sweep=self.sweep_new,
             channel=self.channel, raw_data=self.raw_data)

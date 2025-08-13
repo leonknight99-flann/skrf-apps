@@ -1,25 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_submodules
-
-hiddenimports = collect_submodules('.skrf_qtwidgets')
-hiddenimports.append('skrf_qtwidgets.analyzers')
-hiddenimports.append('skrf_qtwidgets.analyzers.analyzers_cmt')
-
 a = Analysis(
     ['chimp.py'],
     pathex=[],
     binaries=[],
-    datas=[('C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico', '.')
-           ],
-    hiddenimports=hiddenimports,
+    datas=[('C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico', '.'),
+           ('C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\analyzers', '.\\skrf_qtwidgets\\analyzers')],
+    hiddenimports=['pyvisa_py'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
     optimize=0,
-    debug='imports'
 )
 pyz = PYZ(a.pure)
 
@@ -29,11 +22,11 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name='Chimp v0.1',
-    debug=False,
+    debug=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
