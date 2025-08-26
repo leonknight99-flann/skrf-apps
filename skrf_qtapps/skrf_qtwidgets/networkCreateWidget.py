@@ -68,6 +68,9 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.serialNumber = QtWidgets.QLineEdit()
         self.serialNumber.setPlaceholderText("Serial Number")
 
+        self.plus1Button = QtWidgets.QPushButton("+1")
+        self.plus1Button.clicked.connect(lambda: self.plus1_serial_number())
+
         self.notesTextBox = QtWidgets.QPlainTextEdit()
         self.notesTextBox.setPlaceholderText("Notes")
         
@@ -102,6 +105,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.row2.addWidget(self.partidLabel)
         self.row2.addWidget(self.partid)
 
+        self.row3 = QtWidgets.QHBoxLayout() # Row3
+        self.row3.addWidget(self.serialNumber)
+        self.row3.addWidget(self.plus1Button)
+
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
         self.rowFinal.addWidget(self.operatorNumberLabel)
         self.rowFinal.addWidget(self.operatorNumber)
@@ -114,7 +121,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.verticalLayout_main.addWidget(self.importButton)
         self.verticalLayout_main.addLayout(self.row2)
         self.verticalLayout_main.addWidget(self.specInstrumentNumber)
-        self.verticalLayout_main.addWidget(self.serialNumber)
+        self.verticalLayout_main.addLayout(self.row3)
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
         self.verticalLayout_main.addLayout(self.rowFinal)   
@@ -205,6 +212,16 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             self.spec_ntwk = ismSpecTranslate.get_specification_network([self.Instrument_ID])
             self.ntwk_plot.set_networks(self.spec_ntwk)
 
+    def plus1_serial_number(self):
+        current_text = self.serialNumber.text()
+        if not current_text:
+            return
+        elif current_text[-1].isdigit():
+            new_text = re.sub(r'(\d+)$', lambda x: str(int(x.group(0)) + 1).zfill(len(x.group(0))), current_text)
+        else:
+            new_text = current_text + '1'
+        self.serialNumber.setText(new_text)
+
     def save_network_item(self, ntwk_list_item=None):
         partid = self.partid.text()
         sn = self.serialNumber.text()
@@ -227,9 +244,14 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         spec_dict = {k:v for k,v in spec_dict.items() if any(s in k for s in spec_dict_filter)}
 
         property_dict = {'part_id': partid, 'spec': spec_dict, 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
+
+        if not os.path.exists(testDataPath + partid):
+            print(f'Creating directory: {testDataPath + partid}')
+            os.makedirs(testDataPath + partid)
+
         if isinstance(self.ntwk, skrf.Network):
             self.ntwk.comments = str(property_dict)
-            self.ntwk.write_touchstone(f'{sn}_{date}_{time}', skrf_comment=False)
+            self.ntwk.write_touchstone(f'{testDataPath}\\test\\{sn}_{date}_{time}', skrf_comment=False)
 
         if not isinstance(self.ntwk, skrf.Network):
             qt.error_popup('Save failed - no network to save')
