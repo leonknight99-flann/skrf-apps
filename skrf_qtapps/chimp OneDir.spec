@@ -6,7 +6,7 @@ a = Analysis(
     binaries=[],
     datas=[('C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico', '.'),
            ('C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\analyzers', '.\\skrf_qtwidgets\\analyzers')],
-    hiddenimports=['pyvisa_py'],
+    hiddenimports=['pyvisa_py', 'pyvisa', 'gpib_ctypes'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

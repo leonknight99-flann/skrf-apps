@@ -133,7 +133,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
     def get_analyzer_network(self, ports):
         nwa = None
         try:
-            nwa = loaded_analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text())
+            nwa = loaded_analyzers[self.analyserComboBox.currentText()](self.analyserAddress.text(), backend='C:\\WINDOWS\\system32\\visa32.dll')  # Change backend to 'py' for pyvisa-py using NI-VISA
         except Exception:
             print('Unable to get analyzer')
             return
