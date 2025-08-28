@@ -251,7 +251,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         if isinstance(self.ntwk, skrf.Network):
             self.ntwk.comments = str(property_dict)
-            self.ntwk.write_touchstone(f'{testDataPath}\\test\\{sn}_{date}_{time}', skrf_comment=False)
+            self.ntwk.write_touchstone(f'{testDataPath + partid}\\{sn}_{date}_{time}', skrf_comment=False)
 
         if not isinstance(self.ntwk, skrf.Network):
             qt.error_popup('Save failed - no network to save')
