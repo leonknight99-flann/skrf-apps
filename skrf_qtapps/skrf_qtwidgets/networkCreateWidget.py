@@ -139,6 +139,11 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             return
         
         ntwk = nwa.get_snp_network(ports)  # Get the network from the analyzer
+
+        if hasattr(nwa, 'close'):
+            nwa.close()
+        else:
+            nwa._resource.close()
         return ntwk
     
     def load_networks(self, ntwks):
