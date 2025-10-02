@@ -71,6 +71,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.plus1Button = QtWidgets.QPushButton("+1")
         self.plus1Button.clicked.connect(lambda: self.plus1_serial_number())
 
+        self.failFlagButton = QtWidgets.QPushButton("Fail Flag")
+        self.failFlagButton.setCheckable(True)
+        self.failFlagButton.setStyleSheet("QPushButton:checked { background-color: red; color: white; }")
+
         self.notesTextBox = QtWidgets.QPlainTextEdit()
         self.notesTextBox.setPlaceholderText("Notes")
         
@@ -78,8 +82,39 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.operatorNumber = QtWidgets.QSpinBox()
         self.operatorNumber.setMinimum(1)
         self.operatorNumber.setMaximum(999)
+
         self.saveButton = QtWidgets.QPushButton("Save")
         self.saveButton.clicked.connect(lambda: self.save_network_item())
+
+        '''COM Connection'''
+
+        self.address = QtWidgets.QLineEdit()
+        self.address.setPlaceholderText("COM Port")
+
+        self.connectCOMButton = QtWidgets.QPushButton("Connect")
+        self.connectCOMButton.setCheckable(True)
+        self.connectCOMButton.setStyleSheet("QPushButton:checked { background-color: lightgreen; }")
+
+        '''024 Controls'''
+
+        self.position024 = QtWidgets.QLineEdit()
+        self.position024.setPlaceholderText("Position step/dB")
+        self.setPosition024Button = QtWidgets.QPushButton("Goto")
+
+        self.findcoeff024Button = QtWidgets.QPushButton("Find Coeff")
+
+        '''337 Controls'''
+
+        self.pos1Button = QtWidgets.QPushButton("Position 1")
+        self.pos1Button.setCheckable(True)
+        self.pos1Button.clicked.connect(lambda: self.pos2Button.setChecked(False))
+        self.pos1Button.setStyleSheet("QPushButton:checked { background-color: lightblue; }")
+        self.pos2Button = QtWidgets.QPushButton("Position 2")
+        self.pos2Button.setCheckable(True)
+        self.pos2Button.clicked.connect(lambda: self.pos1Button.setChecked(False))
+        self.pos2Button.setStyleSheet("QPushButton:checked { background-color: lightblue; }")
+
+        '''S-Parameter Buttons'''
 
         self.s_paramButtons = {}
 
@@ -95,6 +130,20 @@ class NetworkCreateWidget(QtWidgets.QWidget):
                 self.s_paramGroup.addButton(button, id=(j+4*i))  # Button ids are 0-15 for S11,S12,S13,...,S44
         self.s_paramGroup.setExclusive(False)
 
+        '''Layout Setup'''
+
+        self.tab1 = QtWidgets.QWidget()
+        self.tab2 = QtWidgets.QWidget()
+        self.tab3 = QtWidgets.QWidget()
+        self.tab4 = QtWidgets.QWidget()
+
+        self.instrumentTabWidget = QtWidgets.QTabWidget(self)
+        # self.instrumentTabWidget.setCornerWidget(self.serialNumber, QtCore.Qt.TopRightCorner)
+        self.instrumentTabWidget.addTab(self.tab1, "Home")
+        self.instrumentTabWidget.addTab(self.tab2, "COM")
+        self.instrumentTabWidget.addTab(self.tab3, "024")
+        self.instrumentTabWidget.addTab(self.tab4, "337")
+
         self.row1 = QtWidgets.QHBoxLayout() # Row1
         self.row1.addWidget(self.analyserLabel)
         self.row1.addWidget(self.analyserComboBox)
@@ -106,8 +155,28 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.row2.addWidget(self.partid)
 
         self.row3 = QtWidgets.QHBoxLayout() # Row3
-        self.row3.addWidget(self.serialNumber)
-        self.row3.addWidget(self.plus1Button)
+        self.row3.addWidget(self.instrumentTabWidget)
+
+        self.tab1.layout = QtWidgets.QHBoxLayout()
+        self.tab1.layout.addWidget(self.failFlagButton)
+        self.tab1.layout.addWidget(self.plus1Button)
+        self.tab1.setLayout(self.tab1.layout)
+
+        self.tab2.layout = QtWidgets.QHBoxLayout()
+        self.tab2.layout.addWidget(self.address)
+        self.tab2.layout.addWidget(self.connectCOMButton)
+        self.tab2.setLayout(self.tab2.layout)
+
+        self.tab3.layout = QtWidgets.QHBoxLayout()
+        self.tab3.layout.addWidget(self.findcoeff024Button)
+        self.tab3.layout.addWidget(self.position024)
+        self.tab3.layout.addWidget(self.setPosition024Button)
+        self.tab3.setLayout(self.tab3.layout)
+
+        self.tab4.layout = QtWidgets.QHBoxLayout()
+        self.tab4.layout.addWidget(self.pos1Button)
+        self.tab4.layout.addWidget(self.pos2Button)
+        self.tab4.setLayout(self.tab4.layout)
 
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
         self.rowFinal.addWidget(self.operatorNumberLabel)
@@ -116,12 +185,13 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.rowFinal.addWidget(self.saveButton)
 
         self.verticalLayout_main.addLayout(self.row1)
+        self.verticalLayout_main.addLayout(self.row2)
+        self.verticalLayout_main.addWidget(self.specInstrumentNumber)
+        self.verticalLayout_main.addWidget(self.serialNumber)
+        self.verticalLayout_main.addLayout(self.row3)
         self.verticalLayout_main.addWidget(self.captureButton)
         self.verticalLayout_main.addLayout(self.s_paramLayout)
         self.verticalLayout_main.addWidget(self.importButton)
-        self.verticalLayout_main.addLayout(self.row2)
-        self.verticalLayout_main.addWidget(self.specInstrumentNumber)
-        self.verticalLayout_main.addLayout(self.row3)
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
         self.verticalLayout_main.addLayout(self.rowFinal)   
