@@ -114,6 +114,17 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.pos2Button.clicked.connect(lambda: self.pos1Button.setChecked(False))
         self.pos2Button.setStyleSheet("QPushButton:checked { background-color: lightblue; }")
 
+        self.switchPortGroup = QtWidgets.QButtonGroup()
+        self.switchPortGroup.setExclusive(False)
+        self.switch41Button = QtWidgets.QRadioButton('Port 4-1')
+        self.switchPortGroup.addButton(self.switch41Button)
+        self.switch12Button = QtWidgets.QRadioButton('Port 1-2')
+        self.switchPortGroup.addButton(self.switch12Button)
+        self.switch23Button = QtWidgets.QRadioButton('Port 2-3')
+        self.switchPortGroup.addButton(self.switch23Button)
+        self.switch34Button = QtWidgets.QRadioButton('Port 3-4')
+        self.switchPortGroup.addButton(self.switch34Button)
+
         '''S-Parameter Buttons'''
 
         self.s_paramButtons = {}
@@ -173,9 +184,17 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.tab3.layout.addWidget(self.setPosition024Button)
         self.tab3.setLayout(self.tab3.layout)
 
-        self.tab4.layout = QtWidgets.QHBoxLayout()
-        self.tab4.layout.addWidget(self.pos1Button)
-        self.tab4.layout.addWidget(self.pos2Button)
+        self.tab4.layout = QtWidgets.QVBoxLayout()
+        self.tab4row1 = QtWidgets.QHBoxLayout()
+        self.tab4row1.addWidget(self.switch41Button)
+        self.tab4row1.addWidget(self.switch12Button)
+        self.tab4row1.addWidget(self.switch23Button)
+        self.tab4row1.addWidget(self.switch34Button)
+        self.tab4row2 = QtWidgets.QHBoxLayout()
+        self.tab4row2.addWidget(self.pos1Button)
+        self.tab4row2.addWidget(self.pos2Button)
+        self.tab4.layout.addLayout(self.tab4row1)
+        self.tab4.layout.addLayout(self.tab4row2)
         self.tab4.setLayout(self.tab4.layout)
 
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
@@ -318,11 +337,15 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         spec_dict = {k:v for k,v in spec_dict.items() if any(s in k for s in spec_dict_filter)}
 
-        property_dict = {'part_id': partid, 'spec': spec_dict, 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
+        property_dict = {'part_id': partid, 'spec': spec_dict, 'fail': False, 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
 
         if not os.path.exists(testDataPath + partid):
             print(f'Creating directory: {testDataPath + partid}')
             os.makedirs(testDataPath + partid)
+
+        if self.failFlagButton.isChecked():
+            property_dict['fail'] = True
+            sn = f'{sn}_FAIL'
 
         if isinstance(self.ntwk, skrf.Network):
             self.ntwk.comments = str(property_dict)
