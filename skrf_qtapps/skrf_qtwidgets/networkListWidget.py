@@ -406,20 +406,19 @@ class NetworkListWidget(QtWidgets.QListWidget):
         if not self.sql_widg:
             return
         if test_data:
-            selected_files = self.sql_widg.get_selected_files()
-            file_list = self.sql_widg.get_file_list()
-            for f in selected_files:
-                selected_fnames = list(filter(lambda s: os.path.basename(s) == f, file_list))
-                try:
-                    selected_csv = list(filter(lambda s: s.lower().endswith('.csv'), selected_fnames))
-                    if selected_csv:
-                        self.load_networks(widgets.import_magnitude_files(fnames=selected_csv))
-                    else:
-                        self.load_networks(widgets.load_network_files(fnames=selected_fnames))
-                except:
-                    continue
+            selected_files = self.sql_widg.listWidget_dataFiles.selectedItems()
+            selected_files = [s.data(QtCore.Qt.UserRole) for s in selected_files]
+            try:
+                selected_csv = list(filter(lambda s: s.lower().endswith('.csv'), selected_files))
+                if selected_csv:
+                    self.load_networks(widgets.import_magnitude_files(fnames=selected_csv))
+                else:
+                    self.load_networks(widgets.load_network_files(fnames=selected_files))
+            except:
+                pass
         else:
-            self.load_networks(ismSpecTranslate.get_specification_network(self.sql_widg.get_selected_instrumentIDs()))
+            instrument_ids = [item.data(QtCore.Qt.UserRole)['Instrument_ID'] for item in self.sql_widg.listWidget_partIDs.selectedItems()]
+            self.load_networks(ismSpecTranslate.get_specification_network(instrument_ids))
 
     def save_selected_items(self):
         items = self.selectedItems()
