@@ -2,7 +2,9 @@ import os
 import re
 import pyodbc
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore, QtGui
+
+from . import docxCreation
 
 file_types = ('.csv', '.s1p', '.s2p', '.s3p', '.s4p')
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
@@ -11,6 +13,8 @@ testDataPath = '\\\\Filesrv\\Test\\RFData\\'
 class SQLDataSearchWidget(QtWidgets.QWidget):
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent)
+        
+        monospaced_font = QtGui.QFont("Consolas")
 
         ## --- Setup UI Elements --- ~
         self.verticalLayout = QtWidgets.QVBoxLayout(self) # primary widget layout
@@ -21,6 +25,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.lineEdit_partID = QtWidgets.QLineEdit(self)
         self.lineEdit_filter = QtWidgets.QLineEdit(self)
         self.plot_button = QtWidgets.QPushButton("Plot")
+        self.print_button = QtWidgets.QPushButton("Print")
         self.hlayout_getScan = QtWidgets.QHBoxLayout()
         self.hlayout_getScan.addWidget(self.plotspec_button)
         self.hlayout_getScan.addWidget(QtWidgets.QLabel("Input Instrument Number"))
@@ -30,21 +35,27 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.hlayout_getScan.addWidget(QtWidgets.QLabel("Filter File List"))
         self.hlayout_getScan.addWidget(self.lineEdit_filter)
         self.hlayout_getScan.addWidget(self.plot_button)
+        self.hlayout_getScan.addWidget(self.print_button)
 
         self.hlayout_lists = QtWidgets.QHBoxLayout()
 
         self.listWidget_partIDs = QtWidgets.QListWidget(self)
+        self.listWidget_partIDs.setFont(monospaced_font)
         self.listWidget_partIDs.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
         self.scrollBar_partIDs = QtWidgets.QScrollBar(self)
         self.listWidget_partIDs.setVerticalScrollBar(self.scrollBar_partIDs)
 
         self.listWidget_serialNums = QtWidgets.QListWidget(self)
+        self.listWidget_serialNums.setFont(monospaced_font)
         self.listWidget_serialNums.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
         self.scrollBar_serialNums = QtWidgets.QScrollBar(self)
         self.listWidget_serialNums.setVerticalScrollBar(self.scrollBar_serialNums)
 
         self.listWidget_dataFiles = QtWidgets.QListWidget(self)
+        self.listWidget_dataFiles.setFont(monospaced_font)
         self.listWidget_dataFiles.setSelectionMode(QtWidgets.QListWidget.ExtendedSelection)
+        self.listWidget_dataFiles.setItemAlignment(QtCore.Qt.AlignLeft)
+        self.listWidget_dataFiles.setWordWrap(True)
         self.scrollBar_dataFiles = QtWidgets.QScrollBar(self)
         self.listWidget_dataFiles.setVerticalScrollBar(self.scrollBar_dataFiles)
 
@@ -64,51 +75,43 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.listWidget_partIDs.itemSelectionChanged.connect(self.list_data_files)
         self.listWidget_partIDs.itemDoubleClicked.connect(self.open_partID_folder)
         self.listWidget_serialNums.itemSelectionChanged.connect(self.list_data_files)
-        self.listWidget_dataFiles.itemSelectionChanged.connect(self.get_file_list)
-
-        self.partIDsList, self.serialNoList, self.filesList, self.selected_files = [], [], [], []
-        self.instrumentIDdict = {}
+        self.print_button.clicked.connect(self.print_selected_serial_numbers)
 
     def open_partID_folder(self):
-        selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
-        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
+        selected_pIDs = [item.data(QtCore.Qt.UserRole)['Part_ID'] for item in self.listWidget_partIDs.selectedItems()]
         os.startfile(testDataPath+selected_pIDs[0])
         
     def list_partids(self):
         self.listWidget_partIDs.clear()
-        self.partIDsList.clear()
-        self.instrumentIDdict.clear()
-        display_pIDs = []
         
         InstNum = self.lineEdit_instNum.text()
         PartID = self.lineEdit_partID.text()
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
         for row in mydb_cursor.execute("select Instrument_Number, Instrument_ID, Part_ID, Series, Var_Suffix from vw_Instrument_VarDetails where ((Instrument_Number like ?) and (Part_ID is not null)) and (Part_ID like ?)", ('%'+InstNum+'%', '%'+PartID+'%')):
-            display_pIDs.append(f'{row.Instrument_Number} {row.Var_Suffix} {row.Part_ID}')
-            self.partIDsList.append(row.Part_ID)
-            if row.Instrument_ID not in self.instrumentIDdict:
-                self.instrumentIDdict[row.Instrument_ID] = [row.Part_ID]
-            else:
-                self.instrumentIDdict[row.Instrument_ID].append(row.Part_ID)
-        self.listWidget_partIDs.addItems(display_pIDs)
+            data = {'Instrument_ID': row.Instrument_ID, 'Part_ID': row.Part_ID, 'Serial_Numbers': []}
+            item = QtWidgets.QListWidgetItem(f'{row.Instrument_Number} {row.Var_Suffix} {row.Part_ID}')
+            item.setData(QtCore.Qt.UserRole, data)  # Store Part_ID in UserRole
+            self.listWidget_partIDs.addItem(item)
         mydb.close()
 
     def list_serial_numbers(self):
         self.listWidget_serialNums.clear()
         display_sns = []
 
-        selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
-        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
-
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=SVFLANN;UID=SVUser;PWD=MelonBall", readonly=True)
         mydb_cursor = mydb.cursor()
 
-        for pID in selected_pIDs:
+        # for pID in selected_pIDs:
+        for item in self.listWidget_partIDs.selectedItems():
+            data = item.data(QtCore.Qt.UserRole)
+            pID = data['Part_ID']
             for row in mydb_cursor.execute(f"select * from [vwSerialHistLookup] where PartId like ?", '%'+pID+'%'):
                 display_sns.append(row.Serial)
             for row in mydb_cursor.execute(f"select * from [Serial Master] where PRTNUM_71 like ?", '%'+pID+'%'):
                 display_sns.append(row.SERIAL_71)
+            data['Serial_Numbers'] = display_sns
+            item.setData(QtCore.Qt.UserRole, data)  # Update Serial_Numbers in UserRole
 
         mydb.close()
         display_sns = list(dict.fromkeys(display_sns))  # Remove duplicates
@@ -122,12 +125,9 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         if self.lineEdit_filter.text() != '':
             self.lineEdit_filter.setText(self.lineEdit_filter.text().lower())
         self.listWidget_dataFiles.clear()
-        display_sn = []
-        self.filesList.clear()
 
         selected_sn = [s.text() for s in self.listWidget_serialNums.selectedItems()]
-        selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
-        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
+        selected_pIDs = [item.data(QtCore.Qt.UserRole)['Part_ID'] for item in self.listWidget_partIDs.selectedItems()]
 
         for dir in selected_pIDs:
             try:
@@ -143,27 +143,27 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
                     if len(filter_list) > 0:
                         list_files = list(filter(lambda f: any(s in f.lower() for s in filter_list), list_files))
                     if len(disguard_list) > 0:
-                        list_files = [f for f in list_files if not any(s in f.lower() for s in disguard_list)]
-                self.filesList += [testDataPath+dir+'\\'+s for s in list_files]
-                display_sn += list_files
+                        list_files = list(filter(lambda f: not any(s in f.lower() for s in disguard_list), list_files))
+
+                for file_name in list_files:
+                    path = testDataPath+dir+'\\'+file_name
+                    date_created = QtCore.QFileInfo(path).created().toString("yyyy-MM-dd")
+                    text = f'{file_name:<70} {date_created}'
+                    item = QtWidgets.QListWidgetItem(text)
+                    item.setData(QtCore.Qt.UserRole, path)  # Store full file path in UserRole
+                    self.listWidget_dataFiles.addItem(item)
+
             except:
                 continue
-        self.listWidget_dataFiles.addItems(display_sn)
+    
+    def print_selected_serial_numbers(self):
+        snDictionary = {}
+        for item in self.listWidget_partIDs.selectedItems():
+            filter_sns = [s.text() for s in self.listWidget_serialNums.selectedItems()]
+            if len(filter_sns) > 0:
+                snDictionary[item.data(QtCore.Qt.UserRole)['Part_ID']] = filter_sns
+            else:
+                print('Select Serial Numbers to print')
+        revision_number = "1"
 
-    def get_selected_files(self):
-        selected_files = [s.text() for s in self.listWidget_dataFiles.selectedItems()]
-        return selected_files
-    
-    def get_file_list(self):
-        serialNumsFilesList = self.filesList
-        return serialNumsFilesList
-    
-    def get_selected_instrumentIDs(self):
-        selected_pIDs = [p.row() for p in self.listWidget_partIDs.selectedIndexes()]
-        selected_pIDs = [self.partIDsList[p] for p in selected_pIDs]
-        selected_instrumentIDs = []
-        for p in selected_pIDs:
-            for k, v in self.instrumentIDdict.items():
-                if p in v:  # Note - If a specification fails to plot in the future it maybe due to part IDs not being in the upper or lower cases
-                    selected_instrumentIDs.append(k)
-        return selected_instrumentIDs
+        docxCreation.create_docx_report(snDictionary, revision_number)
