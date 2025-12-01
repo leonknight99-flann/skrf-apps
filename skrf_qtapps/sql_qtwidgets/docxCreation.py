@@ -20,11 +20,11 @@ testDataPath = '\\\\Filesrv\\Test\\RFData\\'
 
 plt.rcParams["font.family"] = "Calibri"
 
-def create_docx_report(snDictionary, revision_number='1'):
+def create_docx_report(instrument_dictionary, revision_number='1', selected_file_only=[]):
 
     date_now = date.today().strftime("%d/%m/%Y")
 
-    for partID in snDictionary:
+    for partID in instrument_dictionary:
 
         # Get Part ID Information
         mydb = pyodbc.connect("DRIVER={SQL Server};SERVER=SQLSRV22;DATABASE=ISM;UID=FLUser;PWD=MelonBall", readonly=True)
@@ -32,17 +32,22 @@ def create_docx_report(snDictionary, revision_number='1'):
         partid_sql_info = mydb_cursor.execute("select Instrument_Number, Instrument_ID, Part_ID, Series, Var_Suffix, var_id, SeriesName from vw_Instrument_VarDetails where (Part_ID = ?)",(partID)).fetchone()
         mydb.close()
 
-        model = f"{partid_sql_info.Instrument_Number} {partid_sql_info.Var_Suffix}"
-        description = f"{partid_sql_info.SeriesName}, ISM {partid_sql_info.Instrument_ID}"
+        instrument_number = partid_sql_info.Instrument_Number
+        instrument_id = str(partid_sql_info.Instrument_ID)
+        var_suffix = partid_sql_info.Var_Suffix
+        seriesName = partid_sql_info.SeriesName
+
+        if var_suffix is None:
+            var_suffix = ''
+
+        model = f"{instrument_number} {var_suffix}"
         
-        for sn in snDictionary[partID]:
+        for sn in instrument_dictionary[partID]:
             # Open Template
             doc = docx.Document(os.path.abspath(os.path.join(os.path.dirname(__file__), "report_template.docx")))
 
             # Table Data
             table = doc.tables[0]
-            # for row in table.rows:
-            #     print([cell.text for cell in row.cells])
 
             paragraph = table.cell(0, 0).add_paragraph()
             run = paragraph.add_run(sn)
@@ -63,7 +68,7 @@ def create_docx_report(snDictionary, revision_number='1'):
             run.italic = False
 
             paragraph = table.cell(0, 3).add_paragraph()
-            run = paragraph.add_run(description)
+            run = paragraph.add_run(seriesName)
             run.font.size = docx.shared.Pt(9)
             run.font.name = 'Calibri'
             run.italic = False
@@ -75,6 +80,12 @@ def create_docx_report(snDictionary, revision_number='1'):
             run.italic = False
 
             paragraph = table.cell(1, 3).add_paragraph()
+            run = paragraph.add_run(instrument_id)
+            run.font.size = docx.shared.Pt(9)
+            run.font.name = 'Calibri'
+            run.italic = False
+
+            paragraph = table.cell(1, 4).add_paragraph()
             run = paragraph.add_run(revision_number)
             run.font.size = docx.shared.Pt(9)
             run.font.name = 'Calibri'
@@ -85,7 +96,10 @@ def create_docx_report(snDictionary, revision_number='1'):
                 list_files = os.listdir(testDataPath+partID)
                 list_files = [name for name in list_files if name.lower().endswith(file_types)]
                 list_files = [name for name in list_files if sn in name]
-                list_files = list(filter(lambda f: not any(s in f.lower() for s in ['top_of_band', 'bottom_of_band']), list_files))
+                # list_files = list(filter(lambda f: not any(s in f.lower() for s in ['top_of_band', 'bottom_of_band']), list_files))
+
+                if selected_file_only:
+                    list_files = [f for f in list_files if f in selected_file_only]
 
                 for file in list_files:
                     # Duplicating table for each file after the first
@@ -103,7 +117,7 @@ def create_docx_report(snDictionary, revision_number='1'):
                         if list_files.index(file) == 0:
                             # Get Analyser and Tester from CSV
                             parameters = np.loadtxt(testDataPath+partID+'\\'+file, delimiter=',', usecols=2, dtype=str)
-                            analyser = parameters[2]
+                            analyser = parameters[2][8:]
                             tester = parameters[0][2:]
 
                             paragraph = table.cell(1, 0).add_paragraph()
@@ -171,4 +185,4 @@ def create_docx_report(snDictionary, revision_number='1'):
 
             doc.save(f"{sn}_test_report_R{revision_number}.docx")#{testDataPath+partID+'\\'
 
-# test_data_print_report({'F01999': ['278751']})
+# create_docx_report({'F01999': ['278751'], 'F06416': ['323379']})

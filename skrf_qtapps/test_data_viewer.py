@@ -51,8 +51,7 @@ class TestDataViewer(QtWidgets.QWidget):
         self.listWidget_measurements.sql_widg = self.sql_widg
 
 def main():
-    qt.single_widget_application(TestDataViewer, appid="TestDataViewer", icon='C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')#='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
-
+    qt.single_widget_application(TestDataViewer, appid="TestDataViewer", icon='C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
 
 
 if __name__ == "__main__":

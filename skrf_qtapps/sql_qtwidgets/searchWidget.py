@@ -147,7 +147,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
 
                 for file_name in list_files:
                     path = testDataPath+dir+'\\'+file_name
-                    date_created = QtCore.QFileInfo(path).created().toString("yyyy-MM-dd")
+                    date_created = QtCore.QFileInfo(path).created().toString("yyyy-MM-dd hh:mm:ss")
                     text = f'{file_name:<70} {date_created}'
                     item = QtWidgets.QListWidgetItem(text)
                     item.setData(QtCore.Qt.UserRole, path)  # Store full file path in UserRole
@@ -165,5 +165,8 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
             else:
                 print('Select Serial Numbers to print')
         revision_number = "1"
+        
+        selected_files = self.listWidget_dataFiles.selectedItems()
+        selected_files = [os.path.basename(s.data(QtCore.Qt.UserRole)) for s in selected_files]
 
-        docxCreation.create_docx_report(snDictionary, revision_number)
+        docxCreation.create_docx_report(snDictionary, revision_number, selected_files)

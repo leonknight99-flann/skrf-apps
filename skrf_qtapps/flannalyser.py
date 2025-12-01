@@ -32,7 +32,7 @@ class Chimp(QtWidgets.QWidget):
 
 
 def main():
-    qt.single_widget_application(Chimp, splash_screen=False, appid="ChimpSKRF", icon='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
+    qt.single_widget_application(Chimp, splash_screen=False, appid="FlannalyserSKRF", icon='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
 
 if __name__ == "__main__":
     main()

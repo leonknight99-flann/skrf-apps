@@ -1,9 +1,11 @@
 import os
+import sys
 import re
 import skrf
 import numpy as np
 import pyodbc
 from collections import OrderedDict
+import tempfile
 
 import matplotlib.pyplot as plt
 
@@ -15,6 +17,7 @@ from .analyzers import loaded_analyzers
 from sql_qtwidgets import ismSpecTranslate
 
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
+tempFileDefaultName = 'flannalyser_tempfile'
 
 
 class NetworkCreateWidget(QtWidgets.QWidget):
@@ -29,8 +32,12 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.Instrument_ID = None
-        self.ntwk = None
+        self.analyser_IFBW = None
+        self.analyser_averaging = None
+        self.analyser_averaging_count = None
         self.spec_ntwk = None
+
+        self.tempdir = tempfile.gettempdir()
 
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)  # Primary Widget Layout
         self.verticalLayout_main.setContentsMargins(0, 0, 0, 0)
@@ -45,9 +52,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         for key in loaded_analyzers.keys():
             self.analyserComboBox.addItem(key)
 
-        self.openButton = QtWidgets.QPushButton("Open Network")
-        self.openButton.released.connect(self.load_from_files)
-        self.openButton.setDisabled(True)  # Remove once the feature has been added
+        self.openButton = QtWidgets.QPushButton("Clear Network")
+        self.openButton.released.connect(self.delete_temp_networks)
 
         self.captureButton = QtWidgets.QPushButton("Capture Data")
         self.captureButton.clicked.connect(lambda: self.capture_data())
@@ -74,6 +80,13 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.failFlagButton = QtWidgets.QPushButton("Fail Flag")
         self.failFlagButton.setCheckable(True)
         self.failFlagButton.setStyleSheet("QPushButton:checked { background-color: red; color: white; }")
+
+        self.numberPortsLabel = QtWidgets.QLabel("Number\nof Ports:")
+        self.numberPorts = QtWidgets.QSpinBox()
+        self.numberPorts.setMinimum(1)
+        self.numberPorts.setMaximum(4)
+        self.numberPorts.setValue(2)
+        self.numberPorts.valueChanged.connect(lambda: self.update_s_param())
 
         self.notesTextBox = QtWidgets.QPlainTextEdit()
         self.notesTextBox.setPlaceholderText("Notes")
@@ -135,11 +148,10 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         for i in range(4):
             for j in range(4):
                 button = QtWidgets.QRadioButton(f'S{i+1}{j+1}')
-                if i + j > 1 and not (i==1 and j==1):
-                    button.setDisabled(True)  # Remove once the feature has been added
                 self.s_paramLayout.addWidget(button, i, j)
                 self.s_paramGroup.addButton(button, id=(j+4*i))  # Button ids are 0-15 for S11,S12,S13,...,S44
         self.s_paramGroup.setExclusive(False)
+        self.update_s_param()
 
         '''Layout Setup'''
 
@@ -171,6 +183,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.tab1.layout = QtWidgets.QHBoxLayout()
         self.tab1.layout.addWidget(self.failFlagButton)
         self.tab1.layout.addWidget(self.plus1Button)
+        self.tab1.layout.addWidget(self.numberPortsLabel)
+        self.tab1.layout.addWidget(self.numberPorts)
         self.tab1.setLayout(self.tab1.layout)
 
         self.tab2.layout = QtWidgets.QHBoxLayout()
@@ -213,7 +227,19 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.verticalLayout_main.addWidget(self.importButton)
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
-        self.verticalLayout_main.addLayout(self.rowFinal)   
+        self.verticalLayout_main.addLayout(self.rowFinal)  
+
+    def update_s_param(self):
+        self.delete_temp_networks()
+        num_ports = self.numberPorts.value()
+        for i in range(4):
+            for j in range(4):
+                button = self.s_paramGroup.button(j + 4 * i)
+                if i < num_ports and j < num_ports:
+                    button.setEnabled(True)
+                else:
+                    button.setEnabled(False)
+                    button.setChecked(False)
 
     def update_selected_analyzer(self):
         cls = loaded_analyzers[self.analyserComboBox.currentText()]
@@ -227,6 +253,13 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             print('Unable to get analyzer')
             return
         
+        self.analyser_IFBW = nwa.if_bandwidth
+        # self.analyser_averaging = nwa.averaging_on()
+        # if self.analyser_averaging:
+        #     self.analyser_averaging_count = nwa.averaging_count()
+        # else:
+        #     self.analyser_averaging_count = None
+        
         ntwk = nwa.get_snp_network(ports)  # Get the network from the analyzer
 
         if hasattr(nwa, 'close'):
@@ -234,13 +267,6 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         else:
             nwa._resource.close()
         return ntwk
-    
-    def load_networks(self, ntwks):
-        if not ntwks:
-            return
-        
-    def load_from_files(self, caption="load touchstone file"):
-        self.load_networks(widgets.load_network_files(caption))
 
     @property
     def ntwk_plot(self):
@@ -258,21 +284,21 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         if not self.ntwk_plot:
             return
         ntwk_list = []
-        self.ntwk = None
+        ntwk = None
         checked_buttons = [i for i, button in enumerate(self.s_paramGroup.buttons()) if button.isChecked()] # Checked buttons are 0-15, i%4 is the column, i//4 is the row
         
         try:
             if checked_buttons == [0]:
-                self.ntwk = self.get_analyzer_network((1,))
+                ntwk = self.get_analyzer_network((1,))
             elif checked_buttons == [5]:
-                self.ntwk = self.get_analyzer_network((2,))
+                ntwk = self.get_analyzer_network((2,))
             else:
-                self.ntwk = self.get_analyzer_network((1,2))
+                ntwk = self.get_analyzer_network((1,2))
             if self.serialNumber.text():
-                self.ntwk.name = self.serialNumber.text()
+                ntwk.name = self.serialNumber.text()
             
-            if isinstance(self.ntwk, skrf.Network):
-                ntwk_list.append(self.ntwk)
+            if isinstance(ntwk, skrf.Network):
+                ntwk_list.append(ntwk)
 
             if isinstance(self.spec_ntwk, skrf.Network):
                 ntwk_list.append(self.spec_ntwk)
@@ -281,8 +307,22 @@ class NetworkCreateWidget(QtWidgets.QWidget):
                 ntwk_with_spec = ntwk_list if len(ntwk_list) > 1 else ntwk_list[0]
             
             self.ntwk_plot.set_networks(ntwk_with_spec)
+
+            ntwk.write_touchstone(os.path.join(self.tempdir, f'{tempFileDefaultName}_{self.serialNumber.text()}_p12'), skrf_comment=False)
+
         except Exception:
             qt.error_popup('Analyzer not found\n\nPlease check the VISA address and try again')
+
+    def delete_temp_networks(self):
+        if self.ntwk_plot:
+            self.ntwk_plot.clear_plot()
+        tempdir = self.tempdir
+        for file in os.listdir(tempdir):
+            if file.startswith(tempFileDefaultName):
+                try:
+                    os.remove(os.path.join(tempdir, file))
+                except Exception as e:
+                    qt.error_popup(f'Error removing temp file {file}: {e}')
 
     def get_instument_number(self):  # Trys to get the Instrument Number from the user entered Part ID
         if self.ntwk_plot:
@@ -316,12 +356,23 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             new_text = current_text + '1'
         self.serialNumber.setText(new_text)
 
-    def save_network_item(self, ntwk_list_item=None):
+    def save_network_item(self):
+
+        # try:
+        tempFileList = [f for f in os.listdir(self.tempdir) if f.startswith(tempFileDefaultName)]
+        print(tempFileList)
+        ntwk = skrf.Network(os.path.join(self.tempdir,tempFileList[0]))  # Load the captured network from the temp file, eventually this will need a combined network
+        # except Exception:
+        #     qt.error_popup('Save failed - no network to save')
+
         partid = self.partid.text()
         sn = self.serialNumber.text()
         text = self.notesTextBox.toPlainText()
         operator = self.operatorNumber.value()
         analyser = self.analyserComboBox.currentText()
+        analyser_IFBW = self.analyser_IFBW
+        analyser_averaging = self.analyser_averaging
+        analyser_averaging_count = self.analyser_averaging_count
         date = QtCore.QDateTime.currentDateTime().toString("yyyyMMdd")
         time = QtCore.QDateTime.currentDateTime().toString("hhmm")
 
@@ -337,7 +388,9 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         spec_dict = {k:v for k,v in spec_dict.items() if any(s in k for s in spec_dict_filter)}
 
-        property_dict = {'part_id': partid, 'spec': spec_dict, 'fail': False, 'operator': operator, 'anlysr': analyser, 'date': date, 'time': time, 'notes': text}
+        property_dict = {'part_id': partid, 'spec': spec_dict, 'fail': False, 'operator': operator, 
+                         'analyser': analyser, 'analyser_IFBW': analyser_IFBW, 'analyser_averaging': analyser_averaging, 
+                         'analyser_averaging_count': analyser_averaging_count, 'date': date, 'time': time, 'notes': text}
 
         if not os.path.exists(testDataPath + partid):
             print(f'Creating directory: {testDataPath + partid}')
@@ -347,11 +400,13 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             property_dict['fail'] = True
             sn = f'{sn}_FAIL'
 
-        if isinstance(self.ntwk, skrf.Network):
-            self.ntwk.comments = str(property_dict)
-            self.ntwk.write_touchstone(f'{testDataPath + partid}\\{sn}_{date}_{time}', skrf_comment=False)
+        if isinstance(ntwk, skrf.Network):
+            ntwk.comments = str(property_dict)
+            ntwk.write_touchstone(f'{testDataPath + partid}\\{sn}_{date}_{time}', skrf_comment=False)
+            qt.MessageBox('Save Successful', title='Save').exec_()
+            self.delete_temp_networks()
 
-        if not isinstance(self.ntwk, skrf.Network):
+        if not isinstance(ntwk, skrf.Network):
             qt.error_popup('Save failed - no network to save')
         
 

@@ -91,6 +91,17 @@ def instantiate_app(sys_argv=None):
         app = QtWidgets.QApplication(sys_argv)
     return app
 
+class MessageBox(QtWidgets.QMessageBox):
+    def __init__(self, text, title="Message", parent=None):
+        super().__init__(parent)
+        self.resize(500, 400)
+        self.setWindowTitle(title)
+
+        if type(text) in (list, tuple):
+            text = "\n".join(text)
+        self.setText(text)
+        self.setIcon(QtWidgets.QMessageBox.Information)
+
 
 class WarningMsgBox(QtWidgets.QDialog):
     def __init__(self, text, title="Warning", parent=None):
