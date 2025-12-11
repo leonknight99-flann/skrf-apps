@@ -142,13 +142,13 @@ def create_docx_report(instrument_dictionary, revision_number='1', selected_file
                         fig, ax = plt.subplots(figsize=(8, 10))
                         
                         ax.plot(freq, mag_s_param)
-                        ax.plot(freq, tested_specification, '--', label='Pass/Fail Limit', color='#004124')
+                        ax.plot(freq, tested_specification, '--', label='Specification', color='#004124')
                         ax.set_xlabel('Frequency (GHz)')
                         ax.set_ylabel('Magnitude (dB)')
                         ax.grid(True, which='both')
                         ax.minorticks_on()
                         ax.grid(which='minor', linewidth=0.5, alpha=0.5)
-                        ax.set_ylim(top=0)
+                        ax.set_ylim(top=0, bottom=min(min(mag_s_param), 2*min(tested_specification)))
                         ax.set_title(title)
                         fig.tight_layout()
 

@@ -53,7 +53,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             self.analyserComboBox.addItem(key)
 
         self.openButton = QtWidgets.QPushButton("Clear Network")
-        self.openButton.released.connect(self.delete_temp_networks)
+        self.openButton.released.connect(lambda: self.delete_temp_networks())
 
         self.captureButton = QtWidgets.QPushButton("Capture Data")
         self.captureButton.clicked.connect(lambda: self.capture_data())
@@ -229,18 +229,6 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         self.verticalLayout_main.addLayout(self.rowFinal)  
 
-    def update_s_param(self):
-        self.delete_temp_networks()
-        num_ports = self.numberPorts.value()
-        for i in range(4):
-            for j in range(4):
-                button = self.s_paramGroup.button(j + 4 * i)
-                if i < num_ports and j < num_ports:
-                    button.setEnabled(True)
-                else:
-                    button.setEnabled(False)
-                    button.setChecked(False)
-
     def update_selected_analyzer(self):
         cls = loaded_analyzers[self.analyserComboBox.currentText()]
         self.analyserAddress.setText(cls.DEFAULT_VISA_ADDRESS)
@@ -279,6 +267,17 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             self.item_removed.connect(self._ntwk_plot.clear_plot)
         else:
             self._ntwk_plot = None
+    
+    def update_s_param(self):
+        num_ports = self.numberPorts.value()
+        for i in range(4):
+            for j in range(4):
+                button = self.s_paramGroup.button(j + 4 * i)
+                if i < num_ports and j < num_ports:
+                    button.setEnabled(True)
+                else:
+                    button.setEnabled(False)
+                    button.setChecked(False)
 
     def capture_data(self):
         if not self.ntwk_plot:

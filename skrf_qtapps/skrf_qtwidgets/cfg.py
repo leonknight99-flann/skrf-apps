@@ -14,6 +14,7 @@ if not os.path.isdir(last_path):
 
 path_default = last_path
 skrf_icon = os.path.join(images_dir, "scikit-rf-logo.png")
+flann_icon = os.path.join(images_dir, "FlannMicrowave.ico")
 
 os.environ['SKRF_PLOT_ENV'] = "none"  # disable automatic loading of pylab
 

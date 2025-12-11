@@ -1,6 +1,6 @@
 from qtpy import QtWidgets, QtCore
 
-from skrf_qtwidgets import NetworkListWidget, NetworkPlotWidget, qt
+from skrf_qtwidgets import NetworkListWidget, NetworkPlotWidget, qt, cfg
 from sql_qtwidgets import SQLDataSearchWidget
 
 
@@ -32,10 +32,8 @@ class TestDataViewer(QtWidgets.QWidget):
         self.listWidget_measurements = NetworkListWidget(self.measurements_widget)
 
         self.evaluate_buttons = self.listWidget_measurements.get_import_buttons()
-        self.save_buttons = self.listWidget_measurements.get_save_buttons()
         self.measurements_widget_layout.addWidget(self.evaluate_buttons)
         self.measurements_widget_layout.addWidget(self.listWidget_measurements)
-        self.measurements_widget_layout.addWidget(self.save_buttons)
 
         self.ntwk_plot = NetworkPlotWidget(self.hsplitter)
         self.ntwk_plot.corrected_data_enabled = False
@@ -51,7 +49,7 @@ class TestDataViewer(QtWidgets.QWidget):
         self.listWidget_measurements.sql_widg = self.sql_widg
 
 def main():
-    qt.single_widget_application(TestDataViewer, appid="TestDataViewer", icon='C:\\Users\\lkni\\Documents\\Code Files\\scikit-rf GIT and APP\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
+    qt.single_widget_application(TestDataViewer, appid="TestDataViewer", icon=cfg.flann_icon)
 
 
 if __name__ == "__main__":

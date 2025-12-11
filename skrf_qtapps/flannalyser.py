@@ -1,6 +1,6 @@
 from qtpy import QtCore, QtWidgets
 
-from skrf_qtwidgets import NetworkPlotWidget, qt, NetworkCreateWidget
+from skrf_qtwidgets import NetworkPlotWidget, qt, NetworkCreateWidget, cfg
 
 from skrf_qtwidgets import analyzers
 
@@ -32,7 +32,7 @@ class Chimp(QtWidgets.QWidget):
 
 
 def main():
-    qt.single_widget_application(Chimp, splash_screen=False, appid="FlannalyserSKRF", icon='.\\skrf-apps\\skrf_qtapps\\skrf_qtwidgets\\images\\FlannMicrowave.ico')
+    qt.single_widget_application(Chimp, splash_screen=False, appid="FlannalyserSKRF", icon=cfg.flann_icon)
 
 if __name__ == "__main__":
     main()

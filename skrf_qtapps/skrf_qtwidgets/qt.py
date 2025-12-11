@@ -96,6 +96,7 @@ class MessageBox(QtWidgets.QMessageBox):
         super().__init__(parent)
         self.resize(500, 400)
         self.setWindowTitle(title)
+        self.setWindowIcon(QtGui.QIcon(cfg.flann_icon))
 
         if type(text) in (list, tuple):
             text = "\n".join(text)

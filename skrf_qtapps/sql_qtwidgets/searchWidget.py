@@ -5,6 +5,7 @@ import pyodbc
 from qtpy import QtWidgets, QtCore, QtGui
 
 from . import docxCreation
+from skrf_qtwidgets import qt
 
 file_types = ('.csv', '.s1p', '.s2p', '.s3p', '.s4p')
 testDataPath = '\\\\Filesrv\\Test\\RFData\\'
@@ -170,3 +171,5 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         selected_files = [os.path.basename(s.data(QtCore.Qt.UserRole)) for s in selected_files]
 
         docxCreation.create_docx_report(snDictionary, revision_number, selected_files)
+
+        qt.MessageBox('Print(s) Successful', title='Save').exec_()
