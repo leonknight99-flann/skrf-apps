@@ -10,6 +10,7 @@ import tempfile
 import matplotlib.pyplot as plt
 
 from qtpy import QtCore, QtWidgets
+from qtpy.QtWidgets import QSizePolicy
 
 from . import widgets, qt
 from .networkPlotWidget import NetworkPlotWidget
@@ -74,19 +75,31 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.serialNumber = QtWidgets.QLineEdit()
         self.serialNumber.setPlaceholderText("Serial Number")
 
-        self.plus1Button = QtWidgets.QPushButton("+1")
+        self.plus1Button = QtWidgets.QPushButton("S/N +1")
         self.plus1Button.clicked.connect(lambda: self.plus1_serial_number())
 
         self.failFlagButton = QtWidgets.QPushButton("Fail Flag")
         self.failFlagButton.setCheckable(True)
         self.failFlagButton.setStyleSheet("QPushButton:checked { background-color: red; color: white; }")
 
-        self.numberPortsLabel = QtWidgets.QLabel("Number\nof Ports:")
+        self.numberPortsLabel = QtWidgets.QLabel("Number of Ports:")
         self.numberPorts = QtWidgets.QSpinBox()
         self.numberPorts.setMinimum(1)
         self.numberPorts.setMaximum(4)
         self.numberPorts.setValue(2)
-        self.numberPorts.valueChanged.connect(lambda: self.update_s_param())
+        self.numberPorts.valueChanged.connect(lambda: self.update_port_combo())
+
+        self.slidingLoadButton = QtWidgets.QPushButton("Sliding Load")
+        self.slidingLoadButton.setCheckable(True)
+        self.slidingLoadButton.setStyleSheet("QPushButton:checked { background-color: green; color: white; }")
+        self.slidingLoadButton.toggled.connect(lambda: self.slidingLoadPosition.setEnabled(self.slidingLoadButton.isChecked()))
+
+        self.slidingLoadLabel = QtWidgets.QLabel("Position (1-8):")
+        self.slidingLoadPosition = QtWidgets.QSpinBox()
+        self.slidingLoadPosition.setMinimum(1)
+        self.slidingLoadPosition.setMaximum(8)
+        self.slidingLoadPosition.setValue(1)
+        self.slidingLoadPosition.setEnabled(False)
 
         self.notesTextBox = QtWidgets.QPlainTextEdit()
         self.notesTextBox.setPlaceholderText("Notes")
@@ -127,31 +140,22 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.pos2Button.clicked.connect(lambda: self.pos1Button.setChecked(False))
         self.pos2Button.setStyleSheet("QPushButton:checked { background-color: lightblue; }")
 
-        self.switchPortGroup = QtWidgets.QButtonGroup()
-        self.switchPortGroup.setExclusive(False)
-        self.switch41Button = QtWidgets.QRadioButton('Port 4-1')
-        self.switchPortGroup.addButton(self.switch41Button)
-        self.switch12Button = QtWidgets.QRadioButton('Port 1-2')
-        self.switchPortGroup.addButton(self.switch12Button)
-        self.switch23Button = QtWidgets.QRadioButton('Port 2-3')
-        self.switchPortGroup.addButton(self.switch23Button)
-        self.switch34Button = QtWidgets.QRadioButton('Port 3-4')
-        self.switchPortGroup.addButton(self.switch34Button)
+        '''S-Parameter Selection'''
 
-        '''S-Parameter Buttons'''
+        self.portRow = QtWidgets.QHBoxLayout()
 
-        self.s_paramButtons = {}
+        self.port_list = ['OFF', '1', '2', '3', '4']
+        self.port1_s_paramComboBox = QtWidgets.QComboBox()
+        self.port1_s_paramComboBox.addItems(self.port_list[:self.numberPorts.value()+1])
+        self.port1_s_paramComboBox.setCurrentIndex(1)
+        self.port2_s_paramComboBox = QtWidgets.QComboBox()
+        self.port2_s_paramComboBox.addItems(self.port_list[:self.numberPorts.value()+1])
+        self.port2_s_paramComboBox.setCurrentIndex(2)
 
-        self.s_paramLayout = QtWidgets.QGridLayout()
-        self.s_paramGroup = QtWidgets.QButtonGroup()
-        
-        for i in range(4):
-            for j in range(4):
-                button = QtWidgets.QRadioButton(f'S{i+1}{j+1}')
-                self.s_paramLayout.addWidget(button, i, j)
-                self.s_paramGroup.addButton(button, id=(j+4*i))  # Button ids are 0-15 for S11,S12,S13,...,S44
-        self.s_paramGroup.setExclusive(False)
-        self.update_s_param()
+        self.portRow.addWidget(QtWidgets.QLabel("Port 1 S-Param:"))
+        self.portRow.addWidget(self.port1_s_paramComboBox)
+        self.portRow.addWidget(QtWidgets.QLabel("Port 2 S-Param:"))
+        self.portRow.addWidget(self.port2_s_paramComboBox)
 
         '''Layout Setup'''
 
@@ -161,7 +165,6 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.tab4 = QtWidgets.QWidget()
 
         self.instrumentTabWidget = QtWidgets.QTabWidget(self)
-        # self.instrumentTabWidget.setCornerWidget(self.serialNumber, QtCore.Qt.TopRightCorner)
         self.instrumentTabWidget.addTab(self.tab1, "Home")
         self.instrumentTabWidget.addTab(self.tab2, "COM")
         self.instrumentTabWidget.addTab(self.tab3, "024")
@@ -180,35 +183,46 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.row3 = QtWidgets.QHBoxLayout() # Row3
         self.row3.addWidget(self.instrumentTabWidget)
 
-        self.tab1.layout = QtWidgets.QHBoxLayout()
-        self.tab1.layout.addWidget(self.failFlagButton)
-        self.tab1.layout.addWidget(self.plus1Button)
-        self.tab1.layout.addWidget(self.numberPortsLabel)
-        self.tab1.layout.addWidget(self.numberPorts)
+        self.tab1.layout = QtWidgets.QVBoxLayout()
+        self.tab1row1 = QtWidgets.QHBoxLayout()
+        self.tab1row1.addWidget(self.failFlagButton)
+        self.tab1row1.addWidget(self.plus1Button)
+        self.tab1row2 = QtWidgets.QHBoxLayout()
+        self.tab1row2.addWidget(self.numberPortsLabel)
+        self.tab1row2.addWidget(self.numberPorts)
+        self.tab1row3 = QtWidgets.QHBoxLayout()
+        self.tab1row3.addWidget(self.slidingLoadButton)
+        self.tab1row3.addWidget(self.slidingLoadLabel)
+        self.tab1row3.addWidget(self.slidingLoadPosition)
+        self.tab1.layout.addLayout(self.tab1row1)
+        self.tab1.layout.addLayout(self.tab1row2)
+        self.tab1.layout.addLayout(self.tab1row3)
+        self.tab1.layout.addStretch()
         self.tab1.setLayout(self.tab1.layout)
 
-        self.tab2.layout = QtWidgets.QHBoxLayout()
-        self.tab2.layout.addWidget(self.address)
-        self.tab2.layout.addWidget(self.connectCOMButton)
+        self.tab2.layout = QtWidgets.QVBoxLayout()
+        self.tab2row1 = QtWidgets.QHBoxLayout()
+        self.tab2row1.addWidget(self.address)
+        self.tab2row1.addWidget(self.connectCOMButton)
+        self.tab2.layout.addLayout(self.tab2row1)
+        self.tab2.layout.addStretch()
         self.tab2.setLayout(self.tab2.layout)
 
-        self.tab3.layout = QtWidgets.QHBoxLayout()
-        self.tab3.layout.addWidget(self.findcoeff024Button)
-        self.tab3.layout.addWidget(self.position024)
-        self.tab3.layout.addWidget(self.setPosition024Button)
+        self.tab3.layout = QtWidgets.QVBoxLayout()
+        self.tab3row1 = QtWidgets.QHBoxLayout()
+        self.tab3row1.addWidget(self.findcoeff024Button)
+        self.tab3row1.addWidget(self.position024)
+        self.tab3row1.addWidget(self.setPosition024Button)
+        self.tab3.layout.addLayout(self.tab3row1)
+        self.tab3.layout.addStretch()
         self.tab3.setLayout(self.tab3.layout)
 
         self.tab4.layout = QtWidgets.QVBoxLayout()
         self.tab4row1 = QtWidgets.QHBoxLayout()
-        self.tab4row1.addWidget(self.switch41Button)
-        self.tab4row1.addWidget(self.switch12Button)
-        self.tab4row1.addWidget(self.switch23Button)
-        self.tab4row1.addWidget(self.switch34Button)
-        self.tab4row2 = QtWidgets.QHBoxLayout()
-        self.tab4row2.addWidget(self.pos1Button)
-        self.tab4row2.addWidget(self.pos2Button)
+        self.tab4row1.addWidget(self.pos1Button)
+        self.tab4row1.addWidget(self.pos2Button)
         self.tab4.layout.addLayout(self.tab4row1)
-        self.tab4.layout.addLayout(self.tab4row2)
+        self.tab4.layout.addStretch()
         self.tab4.setLayout(self.tab4.layout)
 
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
@@ -222,12 +236,29 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.verticalLayout_main.addWidget(self.specInstrumentNumber)
         self.verticalLayout_main.addWidget(self.serialNumber)
         self.verticalLayout_main.addLayout(self.row3)
+        self.verticalLayout_main.addLayout(self.portRow)
         self.verticalLayout_main.addWidget(self.captureButton)
-        self.verticalLayout_main.addLayout(self.s_paramLayout)
         self.verticalLayout_main.addWidget(self.importButton)
         self.verticalLayout_main.addWidget(self.notesTextBox)
 
         self.verticalLayout_main.addLayout(self.rowFinal)  
+
+    def update_port_combo(self):
+        port1_currentIdex = self.port1_s_paramComboBox.currentIndex()
+        port2_currentIdex = self.port2_s_paramComboBox.currentIndex()
+
+        if port1_currentIdex > self.numberPorts.value():
+            port1_currentIdex = 0
+        if port2_currentIdex > self.numberPorts.value():
+            port2_currentIdex = 0
+
+        self.port1_s_paramComboBox.clear()
+        self.port1_s_paramComboBox.addItems(self.port_list[:self.numberPorts.value()+1])
+        self.port1_s_paramComboBox.setCurrentIndex(port1_currentIdex)
+
+        self.port2_s_paramComboBox.clear()
+        self.port2_s_paramComboBox.addItems(self.port_list[:self.numberPorts.value()+1])
+        self.port2_s_paramComboBox.setCurrentIndex(port2_currentIdex)
 
     def update_selected_analyzer(self):
         cls = loaded_analyzers[self.analyserComboBox.currentText()]
@@ -267,32 +298,23 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             self.item_removed.connect(self._ntwk_plot.clear_plot)
         else:
             self._ntwk_plot = None
-    
-    def update_s_param(self):
-        num_ports = self.numberPorts.value()
-        for i in range(4):
-            for j in range(4):
-                button = self.s_paramGroup.button(j + 4 * i)
-                if i < num_ports and j < num_ports:
-                    button.setEnabled(True)
-                else:
-                    button.setEnabled(False)
-                    button.setChecked(False)
 
     def capture_data(self):
         if not self.ntwk_plot:
             return
         ntwk_list = []
         ntwk = None
-        checked_buttons = [i for i, button in enumerate(self.s_paramGroup.buttons()) if button.isChecked()] # Checked buttons are 0-15, i%4 is the column, i//4 is the row
         
         try:
-            if checked_buttons == [0]:
+            if self.port2_s_paramComboBox.currentIndex() == 0:
                 ntwk = self.get_analyzer_network((1,))
-            elif checked_buttons == [5]:
+                port_number = self.port1_s_paramComboBox.currentText()*2
+            elif self.port1_s_paramComboBox.currentIndex() == 0:
                 ntwk = self.get_analyzer_network((2,))
-            else:
+                port_number = self.port2_s_paramComboBox.currentText()*2
+            else:  # Both ports enabled
                 ntwk = self.get_analyzer_network((1,2))
+                port_number = self.port1_s_paramComboBox.currentText() + self.port2_s_paramComboBox.currentText()
             if self.serialNumber.text():
                 ntwk.name = self.serialNumber.text()
             
@@ -307,7 +329,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
             
             self.ntwk_plot.set_networks(ntwk_with_spec)
 
-            ntwk.write_touchstone(os.path.join(self.tempdir, f'{tempFileDefaultName}_{self.serialNumber.text()}_p12'), skrf_comment=False)
+            ntwk.write_touchstone(os.path.join(self.tempdir, f'{tempFileDefaultName}_{self.serialNumber.text()}_P{port_number}'), skrf_comment=False)
 
         except Exception:
             qt.error_popup('Analyzer not found\n\nPlease check the VISA address and try again')

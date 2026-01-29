@@ -112,14 +112,12 @@ def light_trace_color_cycle(n=1000):
     green = "#2CA02C"
     red = "#D62728"
     purple = "#9467BD"
-    brown = "#8C564B"
     pink = "#E377C2"
-    gray = "#7F7F7F"
     olive = "#BCBD22"
     teal = "#17BECF"
 
     count = 0
-    colors = [blue, orange, green, red, purple, brown, pink, gray, olive, teal]
+    colors = [blue, orange, green, red, purple, pink, olive, teal]
     num = len(colors)
     while count < n:
         yield colors[count % num]

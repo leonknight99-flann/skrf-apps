@@ -148,7 +148,7 @@ def create_docx_report(instrument_dictionary, revision_number='1', selected_file
                         ax.grid(True, which='both')
                         ax.minorticks_on()
                         ax.grid(which='minor', linewidth=0.5, alpha=0.5)
-                        ax.set_ylim(top=0, bottom=min(min(mag_s_param), 2*min(tested_specification)))
+                        ax.set_ylim(top=0, bottom=min([min(mag_s_param), 2*min(tested_specification), -100]))
                         ax.set_title(title)
                         fig.tight_layout()
 
@@ -182,7 +182,11 @@ def create_docx_report(instrument_dictionary, revision_number='1', selected_file
             except:
                 print(f"Could not find directory for PartID: {partID}")
                 continue
-
+            
+            doc.core_properties.last_modified_by = os.getlogin()
+            doc.core_properties.modified = date.today()
+            doc.core_properties.title = f"Test Report for {sn} - Revision {revision_number}"
+            doc.core_properties.revision = revision_number
             doc.save(f"{sn}_test_report_R{revision_number}.docx")#{testDataPath+partID+'\\'
 
 # create_docx_report({'F01999': ['278751'], 'F06416': ['323379']})
