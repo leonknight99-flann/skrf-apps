@@ -21,7 +21,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='Flannalyser v0.2',
+    name='Flannalyser v0.3',
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,
@@ -41,5 +41,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='Flannalyser v0.2',
+    name='Flannalyser v0.3',
 )

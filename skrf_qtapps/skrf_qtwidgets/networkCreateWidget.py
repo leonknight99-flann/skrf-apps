@@ -53,8 +53,8 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         for key in loaded_analyzers.keys():
             self.analyserComboBox.addItem(key)
 
-        self.openButton = QtWidgets.QPushButton("Clear Network")
-        self.openButton.released.connect(lambda: self.delete_temp_networks())
+        self.clearNetworkButton = QtWidgets.QPushButton("Clear Network")
+        self.clearNetworkButton.released.connect(lambda: self.delete_temp_networks())
 
         self.captureButton = QtWidgets.QPushButton("Capture Data")
         self.captureButton.clicked.connect(lambda: self.capture_data())
@@ -228,7 +228,7 @@ class NetworkCreateWidget(QtWidgets.QWidget):
         self.rowFinal = QtWidgets.QHBoxLayout() # Row-1
         self.rowFinal.addWidget(self.operatorNumberLabel)
         self.rowFinal.addWidget(self.operatorNumber)
-        self.rowFinal.addWidget(self.openButton)
+        self.rowFinal.addWidget(self.clearNetworkButton)
         self.rowFinal.addWidget(self.saveButton)
 
         self.verticalLayout_main.addLayout(self.row1)
@@ -381,8 +381,14 @@ class NetworkCreateWidget(QtWidgets.QWidget):
 
         # try:
         tempFileList = [f for f in os.listdir(self.tempdir) if f.startswith(tempFileDefaultName)]
+        print(f'Number of Ports: {self.numberPorts.value()}')
         print(tempFileList)
-        ntwk = skrf.Network(os.path.join(self.tempdir,tempFileList[0]))  # Load the captured network from the temp file, eventually this will need a combined network
+        
+        if self.numberPorts.value() <= 2:
+            ntwk = skrf.Network(os.path.join(self.tempdir,tempFileList[0]))  # Load the captured network from the temp file, eventually this will need a combined network
+
+        else:
+            ntwk = skrf.n_twoports_2_nport([skrf.Network(os.path.join(self.tempdir,f)) for f in tempFileList], nports=self.numberPorts.value())  # Combine 2-port networks into n-port network
         # except Exception:
         #     qt.error_popup('Save failed - no network to save')
 
