@@ -27,6 +27,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.lineEdit_filter = QtWidgets.QLineEdit(self)
         self.plot_button = QtWidgets.QPushButton("Plot")
         self.print_button = QtWidgets.QPushButton("Print")
+        self.gangMeasurement_checkBox = QtWidgets.QCheckBox("Gang\nPlots")
         self.hlayout_getScan = QtWidgets.QHBoxLayout()
         self.hlayout_getScan.addWidget(self.plotspec_button)
         self.hlayout_getScan.addWidget(QtWidgets.QLabel("Input Instrument Number"))
@@ -37,6 +38,7 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         self.hlayout_getScan.addWidget(self.lineEdit_filter)
         self.hlayout_getScan.addWidget(self.plot_button)
         self.hlayout_getScan.addWidget(self.print_button)
+        self.hlayout_getScan.addWidget(self.gangMeasurement_checkBox)
 
         self.hlayout_lists = QtWidgets.QHBoxLayout()
 
@@ -170,6 +172,6 @@ class SQLDataSearchWidget(QtWidgets.QWidget):
         selected_files = self.listWidget_dataFiles.selectedItems()
         selected_files = [os.path.basename(s.data(QtCore.Qt.UserRole)) for s in selected_files]
 
-        docxCreation.create_docx_report(snDictionary, revision_number, selected_files)
+        docxCreation.create_docx_report(snDictionary, revision_number, selected_files, self.gangMeasurement_checkBox.isChecked())
 
         qt.MessageBox('Print(s) Successful', title='Save').exec_()

@@ -10,7 +10,7 @@ class Chimp(QtWidgets.QWidget):
 
         # --- Setup UI --- #
         self.resize(825, 575)
-        self.setWindowTitle("Chimp Scikit-RF")
+        self.setWindowTitle("Flannalyser")
         self.verticalLayout_main = QtWidgets.QVBoxLayout(self)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal, self)
