@@ -7,5 +7,3 @@ class Analyzer(ZVA):
     NPORTS = 4
     NCHANNELS = 1
     SCPI_VERSION_TESTED = ''
-
-
